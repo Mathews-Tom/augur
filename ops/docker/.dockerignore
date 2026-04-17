@@ -1,0 +1,19 @@
+# Only source needed at build time; tests and dev artifacts excluded.
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.git/
+.github/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+data/
+labels/
+tests/
+.docs/
+docs/
+schemas/
+*.egg-info/

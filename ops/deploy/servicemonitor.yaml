@@ -1,0 +1,21 @@
+# Prometheus ServiceMonitor so every worker's /metrics endpoint is
+# scraped automatically when the prometheus-operator is installed in
+# the cluster. Bare Prometheus setups replace this with a scrape
+# config in the Prometheus ConfigMap.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: augur-workers
+  namespace: augur
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: augur
+  namespaceSelector:
+    matchNames:
+      - augur
+  endpoints:
+    - port: metrics
+      interval: 15s

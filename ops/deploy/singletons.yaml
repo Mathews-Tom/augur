@@ -1,0 +1,115 @@
+# Active-passive singleton StatefulSets.
+#
+# Dedup and the LLM formatter each run one active + one passive
+# replica coordinated by the distributed lock. StatefulSet gives each
+# pod a stable identity ($POD_NAME) which the singleton_runner
+# forwards to the lock backend as holder_id.
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: augur-dedup
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: dedup
+spec:
+  serviceName: augur-dedup
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: dedup
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: dedup
+    spec:
+      containers:
+        - name: dedup
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args: [augur_signals.workers.dedup]
+          env:
+            - name: AUGUR_REPLICA_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 300m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: augur-llm
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: llm
+spec:
+  serviceName: augur-llm
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: llm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: llm
+    spec:
+      containers:
+        - name: llm
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args: [augur_format.workers.llm]
+          env:
+            - name: AUGUR_REPLICA_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
