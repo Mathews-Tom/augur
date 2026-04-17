@@ -4,6 +4,21 @@ All notable changes to Augur are recorded in this file. Format follows [Keep a C
 
 ## [Unreleased]
 
+### Added — Labeling Pipeline
+
+- `src/augur_labels/` package with Pydantic data contracts for `NewsworthyEvent`, `EventCandidate`, `SourcePublication`, `QualifyingSource`, `LabelDecision`, `AnnotatorIdentity`, and `AgreementReport`. The closed `source_id` literal set (reuters, bloomberg, ap, ft) is load-bearing across adapters, storage, and workflow.
+- Four source adapters (`ReutersAdapter`, `BloombergAdapter`, `ApAdapter`, `FtAdapter`) implementing `AbstractSourceAdapter` against their respective REST APIs with shared exponential-backoff retry. Credentials are read from the env vars documented in `docs/methodology/labeling-protocol.md`; missing credentials fail loud at construction except for the FT adapter, which gracefully degrades to empty output on missing API key.
+- Append-only Parquet writer with per-date partitioning and `filelock`-based concurrent-write safety. `supersede()` implements the protocol's correction path in-place under the partition lock. `LabelReader` exposes `events_in_window`, `events_for_market`, and `coverage_by_category` with partition pruning.
+- Inter-annotator agreement metrics via Cohen's kappa on event existence and category assignment, 60-second timestamp agreement, and mean market-association Jaccard. `compute_agreement` pairs decisions by `candidate_id` and evaluates the four targets from `docs/methodology/labeling-protocol.md §Inter-Annotator Agreement`.
+- `WorkflowEnforcer.can_promote` and `promotion_warnings` enforce the two-annotator promotion gate: two distinct annotators, existence agreement, timestamp within 5-minute hard fail, and strictly positive market Jaccard.
+- `join_signals_to_events` implements the canonical TP/FP criteria: market_id match plus lead time in (0, 24h]. Multiple events on the same market match the earliest qualifying one; non-labeled statuses (candidate, superseded, rejected) are excluded.
+- Click-driven `augur-label` CLI with `candidates`, `inspect`, `decide`, `promote`, `correct`, and `coverage` commands. The CLI persists queue state to `labels/queue.json` and writes promoted events to the parquet corpus.
+- `config/labeling.toml` mirrors `docs/methodology/labeling-protocol.md` defaults (rate limits, agreement targets, storage paths, join windows).
+
+### Operational Handoff — Labeling
+
+After merge a labeler can run `augur-label candidates`, `augur-label decide`, and `augur-label promote` against real candidates. The nightly calibration job (Phase 1's `scripts/calibrate.py`) consumes `join_signals_to_events` output to rebuild reliability curves. The first 90 days of operation require double labeling per `docs/methodology/labeling-protocol.md §Inter-Annotator Agreement`; CI reports agreement metrics during that window.
+
 ### Added
 
 - Pydantic data contracts: `MarketSnapshot`, `FeatureVector`, `MarketSignal`, `SignalContext`, `RelatedMarketState`, and the closed enums `SignalType`, `ManipulationFlag`, `ConsumerType`, `InterpretationMode`. `MarketSignal` enforces `calibration_provenance` via a model validator; every model is frozen and rejects unknown fields. JSON schemas exported to `schemas/*.json` and kept in sync by `scripts/export_schemas.py`.
