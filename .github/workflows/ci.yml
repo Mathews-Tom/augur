@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Mypy strict
+        run: uv run mypy --strict src/
+
+      - name: LLM-import guard
+        run: |
+          if grep -rE "import (anthropic|openai|ollama|llama)" src/augur_signals/; then
+            echo "LLM import in augur_signals package"
+            exit 1
+          fi
+
+      - name: Forbidden-token doc lint
+        run: |
+          if grep -rE "\b(may be driven by|consistent with new information|potentially indicates|likely reflects|suggests that)\b" docs/ | grep -v "docs/methodology/calibration-methodology.md"; then
+            echo "Causal-narrative phrase in docs/"
+            exit 1
+          fi
+
+      - name: Schema export check
+        run: uv run python scripts/export_schemas.py --check
+
+      - name: Tests with coverage
+        run: uv run pytest --cov=src --cov-report=xml --cov-fail-under=80
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  commitlint:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
