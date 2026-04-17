@@ -1,0 +1,30 @@
+# Gated LLM secondary formatter configuration.
+#
+# Default off per phase-4 §17.1. An operator enables the interpreter
+# by setting [interpreter] enabled = true after reviewing the
+# reputation-risk example in docs/examples/negative-paths.md §Example 4.
+#
+# Model identifiers live in this file per ~/.claude/CLAUDE.md §Models
+# & Configuration — never in source code.
+
+[interpreter]
+enabled = false
+default_backend = "ollama"
+max_tokens = 512
+temperature = 0.2
+suspend_during_storm = true
+
+[backends.ollama]
+endpoint = "http://localhost:11434"
+model = "gemma2:27b"
+timeout_seconds = 30
+max_retries = 2
+
+[backends.anthropic]
+model = "claude-haiku-4-5-20251001"
+timeout_seconds = 20
+max_retries = 3
+api_key_env = "ANTHROPIC_API_KEY"
+
+[prompts]
+template_dir = "src/augur_format/augur_format/llm/prompts/templates"
