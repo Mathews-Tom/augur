@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal
 
+from augur_labels._protocol import LABEL_PROTOCOL_VERSION
 from augur_labels.models import NewsworthyEvent
 from augur_signals.models import MarketSignal
 
@@ -40,7 +41,7 @@ def join_signals_to_events(
     events: Sequence[NewsworthyEvent],
     now: datetime,
     lead_window: timedelta = timedelta(hours=24),
-    label_protocol_version: str = "1.0",
+    label_protocol_version: str = LABEL_PROTOCOL_VERSION,
 ) -> list[SignalLabel]:
     """Return one SignalLabel per signal.
 
@@ -93,9 +94,11 @@ def _earliest_match(
     candidates: Sequence[NewsworthyEvent],
     lead_window: timedelta,
 ) -> NewsworthyEvent | None:
-    max_seconds = lead_window.total_seconds()
+    zero = timedelta(0)
     for event in candidates:
-        delta = (event.ground_truth_timestamp - signal.detected_at).total_seconds()
-        if 0.0 < delta <= max_seconds:
+        delta = event.ground_truth_timestamp - signal.detected_at
+        # timedelta comparison avoids the float-seconds round-trip so the
+        # sub-microsecond boundary at lead_window is deterministic.
+        if zero < delta <= lead_window:
             return event
     return None

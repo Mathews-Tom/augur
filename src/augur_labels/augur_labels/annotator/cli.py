@@ -23,6 +23,10 @@ from uuid import uuid4
 import click
 
 from augur_labels._config import LabelingConfig
+from augur_labels._protocol import (
+    LABEL_PROTOCOL_VERSION,
+    MIN_DISTINCT_QUALIFYING_SOURCES,
+)
 from augur_labels.annotator.candidate_queue import CandidateQueue
 from augur_labels.annotator.workflow import WorkflowEnforcer
 from augur_labels.models import (
@@ -32,6 +36,10 @@ from augur_labels.models import (
 )
 from augur_labels.storage.parquet_writer import AppendOnlyParquetWriter
 from augur_labels.storage.reader import LabelReader
+
+
+class InsufficientSourcesError(RuntimeError):
+    """Raised when a candidate lacks the protocol-required qualifying sources."""
 
 
 def _queue_path(queue_file: str | None) -> Path:
@@ -168,7 +176,12 @@ def cmd_promote(ctx: click.Context, candidate_id: str) -> None:
         ctx.exit(1)
     for warning in enforcer.promotion_warnings(candidate_id):
         click.echo(f"warning: {warning}", err=True)
-    event = _compose_event(queue, candidate_id)
+    try:
+        event = _compose_event(queue, candidate_id)
+    except InsufficientSourcesError as exc:
+        click.echo(f"cannot promote: {exc}", err=True)
+        ctx.exit(1)
+        raise  # unreachable; ctx.exit raises, but keeps mypy satisfied.
     writer = AppendOnlyParquetWriter(Path(config.storage.labels_root))
     writer.append([event])
     click.echo(f"promoted {candidate_id} to event {event.event_id}")
@@ -200,29 +213,54 @@ def cmd_coverage(ctx: click.Context, since_iso: str | None) -> None:
 
 
 def _compose_event(queue: CandidateQueue, candidate_id: str) -> NewsworthyEvent:
-    """Build a NewsworthyEvent from the qualifying decisions."""
+    """Build a NewsworthyEvent from the qualifying decisions.
+
+    Enforces the protocol §Definition-of-a-Newsworthy-Event requirement
+    that at least two distinct qualifying sources publish within the
+    window. Ground-truth timestamp and headline come from the earliest
+    publication (protocol §Ground-Truth Timestamp Rule).
+    """
     candidate = queue.get(candidate_id)
+    if not candidate.publications:
+        raise InsufficientSourcesError(f"candidate {candidate_id!r} has no publications")
+    distinct_publishers = {pub.source_id for pub in candidate.publications}
+    if len(distinct_publishers) < MIN_DISTINCT_QUALIFYING_SOURCES:
+        raise InsufficientSourcesError(
+            f"candidate {candidate_id!r} has {len(distinct_publishers)} "
+            f"distinct qualifying publisher(s); protocol requires at least "
+            f"{MIN_DISTINCT_QUALIFYING_SOURCES}"
+        )
     decisions = [d for d in queue.decisions_for(candidate_id) if d.qualifies]
-    timestamps = [d.timestamp for d in decisions if d.timestamp is not None]
-    ground_truth = min(timestamps) if timestamps else candidate.discovered_at
+    earliest = min(candidate.publications, key=lambda p: p.timestamp)
     market_sets = [set(d.market_ids) for d in decisions]
     merged_markets = sorted(set.union(*market_sets)) if market_sets else []
     categories = [d.category for d in decisions if d.category]
     category = categories[0] if categories else "markets"
-    headline = candidate.publications[0].headline if candidate.publications else ""
-    source_urls = [str(pub.url) for pub in candidate.publications]
-    source_publishers = [pub.source_id for pub in candidate.publications]
+    # Deduplicate publisher list in earliest-first publication order so
+    # the labeled record surfaces distinct sources without duplicates.
+    source_urls: list[str] = []
+    source_publishers: list[str] = []
+    seen_urls: set[str] = set()
+    seen_publishers: set[str] = set()
+    for pub in sorted(candidate.publications, key=lambda p: p.timestamp):
+        url = str(pub.url)
+        if url not in seen_urls:
+            source_urls.append(url)
+            seen_urls.add(url)
+        if pub.source_id not in seen_publishers:
+            source_publishers.append(pub.source_id)
+            seen_publishers.add(pub.source_id)
     labeler_ids = sorted({d.annotator_id for d in decisions})
     return NewsworthyEvent(
         event_id=str(uuid4()),
-        ground_truth_timestamp=ground_truth,
+        ground_truth_timestamp=earliest.timestamp,
         market_ids=merged_markets,
         category=category,
-        headline=headline,
+        headline=earliest.headline,
         source_urls=source_urls,
-        source_publishers=source_publishers,
+        source_publishers=source_publishers,  # type: ignore[arg-type]
         labeler_ids=labeler_ids,
-        label_protocol_version="1.0",
+        label_protocol_version=LABEL_PROTOCOL_VERSION,
         corrects=None,
         status="labeled",
         created_at=datetime.now(tz=UTC),

@@ -24,8 +24,18 @@ TIMESTAMP_AGREEMENT_WINDOW: timedelta = timedelta(seconds=60)
 
 
 def _cohens_kappa(labels_a: Sequence[object], labels_b: Sequence[object]) -> float:
-    """Cohen's kappa on two equal-length sequences of categorical labels."""
-    if len(labels_a) != len(labels_b) or not labels_a:
+    """Cohen's kappa on two equal-length sequences of categorical labels.
+
+    Raises ValueError on length mismatch so a data-integrity bug in the
+    caller surfaces immediately rather than masquerading as low kappa.
+    Empty inputs short-circuit to 0.0 because an empty window has no
+    meaningful agreement metric.
+    """
+    if len(labels_a) != len(labels_b):
+        raise ValueError(
+            f"label sequences have mismatched lengths: {len(labels_a)} vs {len(labels_b)}"
+        )
+    if not labels_a:
         return 0.0
     n = len(labels_a)
     observed = sum(1 for a, b in zip(labels_a, labels_b, strict=True) if a == b) / n
@@ -52,11 +62,18 @@ def _jaccard(a: Sequence[str], b: Sequence[str]) -> float:
 def _pair_decisions(
     decisions_a: Sequence[LabelDecision],
     decisions_b: Sequence[LabelDecision],
-) -> list[tuple[LabelDecision, LabelDecision]]:
+) -> tuple[list[tuple[LabelDecision, LabelDecision]], int]:
+    """Return (paired_decisions, unpaired_count).
+
+    Unpaired decisions (candidate reviewed by only one annotator) are
+    surfaced so ``compute_agreement`` can report them without silently
+    dropping from the denominator.
+    """
     by_candidate_a = {d.candidate_id: d for d in decisions_a}
     by_candidate_b = {d.candidate_id: d for d in decisions_b}
     shared = set(by_candidate_a) & set(by_candidate_b)
-    return [(by_candidate_a[c], by_candidate_b[c]) for c in sorted(shared)]
+    unpaired = len(set(by_candidate_a) ^ set(by_candidate_b))
+    return [(by_candidate_a[c], by_candidate_b[c]) for c in sorted(shared)], unpaired
 
 
 def compute_agreement(
@@ -66,7 +83,7 @@ def compute_agreement(
     window_end: datetime,
 ) -> AgreementReport:
     """Compute the four-metric report for paired decisions."""
-    pairs = _pair_decisions(decisions_a, decisions_b)
+    pairs, unpaired = _pair_decisions(decisions_a, decisions_b)
     annotator_ids = (
         tuple(sorted({decisions_a[0].annotator_id, decisions_b[0].annotator_id}))
         if decisions_a and decisions_b
@@ -78,6 +95,7 @@ def compute_agreement(
             window_start=window_start,
             window_end=window_end,
             candidate_count=0,
+            unpaired_count=unpaired,
             event_existence_kappa=0.0,
             timestamp_agreement_60s=0.0,
             market_association_jaccard_mean=0.0,
@@ -133,6 +151,7 @@ def compute_agreement(
         window_start=window_start,
         window_end=window_end,
         candidate_count=len(pairs),
+        unpaired_count=unpaired,
         event_existence_kappa=event_kappa,
         timestamp_agreement_60s=timestamp_agreement,
         market_association_jaccard_mean=jaccard_mean,
