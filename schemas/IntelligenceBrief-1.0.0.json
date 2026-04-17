@@ -15,7 +15,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Gated LLM formatter output contract.\n\n``actionable_for`` is constrained to the ConsumerType registry in\ndocs/contracts/consumer-registry.md via the Pydantic field type;\nthe closed-enum validator rechecks this at the formatter boundary\nso even dynamically-constructed instances fail loud on unknown\nvalues.",
+  "description": "Gated LLM formatter output contract.\n\nStructural invariants are enforced by Pydantic at construction:\nthe headline is capped at 90 characters so it fits a Slack header,\nbody_markdown is capped at 800 characters so it stays readable on\na dashboard card, ``actionable_for`` is typed as list[ConsumerType]\nso unknown consumers fail immediately, and ``interpretation_mode``\nplus ``forbidden_token_check`` are Literal singletons \u2014 any\nconstruction path that bypasses the linter or the deterministic-\nmode check would have to forge the literal, which is caught in\ncode review.",
   "properties": {
     "actionable_for": {
       "items": {
@@ -25,6 +25,7 @@
       "type": "array"
     },
     "body_markdown": {
+      "maxLength": 800,
       "title": "Body Markdown",
       "type": "string"
     },
@@ -38,7 +39,17 @@
       "title": "Forbidden Token Check",
       "type": "string"
     },
+    "formatter_version": {
+      "title": "Formatter Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
     "headline": {
+      "maxLength": 90,
       "title": "Headline",
       "type": "string"
     },
@@ -83,7 +94,9 @@
     "body_markdown",
     "severity",
     "model",
-    "prompt_hash"
+    "prompt_hash",
+    "formatter_version",
+    "generated_at"
   ],
   "title": "IntelligenceBrief",
   "type": "object"
