@@ -4,6 +4,23 @@ All notable changes to Augur are recorded in this file. Format follows [Keep a C
 
 ## [Unreleased]
 
+### Added — Gated LLM Secondary Formatter
+
+- `src/augur_format/llm/` package — the only location in the codebase where LLM SDK imports live, complementing the CI grep guard over `src/augur_signals/`.
+- Expanded `IntelligenceBrief` contract with `headline` (≤ 90 chars), `body_markdown` (≤ 800 chars), `formatter_version`, `generated_at`, and model validators locking `interpretation_mode="llm_assisted"` and `forbidden_token_check="passed"`. Schema re-exported at `schemas/IntelligenceBrief-1.0.0.json`.
+- `AbstractLLMBackend` protocol with two concrete adapters: `OllamaBackend` (plain httpx against the local daemon) and `AnthropicBackend` (lazy-imported anthropic SDK). Both accept retry budgets and raise `BackendError` on exhaustion.
+- Deterministic `PromptBuilder` producing `(system, user)` prompt pairs with the sorted forbidden-phrase list, `IntelligenceBrief` schema summary, `ConsumerType` enum, and per-signal-type templates. Templates live under `augur_format/llm/prompts/templates/` and ship in the wheel.
+- `ForbiddenTokenLinter` with `load_forbidden_phrases` that flattens every `[category].phrases` block in `config/forbidden_tokens.toml`. Matching is case-insensitive; a matched phrase drops the brief before `IntelligenceBrief` construction.
+- `SchemaValidator` wrapping Pydantic `IntelligenceBrief.model_validate` and returning a stable `ValidationResult`.
+- `ProvenanceStamp` carrying model-backend pair, SHA-256 prompt hash, and installed `formatter_version`. Auditors reproduce the hash from the deterministic prompt output.
+- `ConsumerGate` enforcing `accepts_llm_assisted` opt-in per `docs/contracts/consumer-registry.md`.
+- `LLMInterpreter` orchestrator composing backend + prompt + linter + schema validator + stamp. `set_suspended` wires into the Phase-1 `StormController` so briefs stop generating under storm-mode pressure.
+- `config/llm.toml` with `[interpreter] enabled=false` default, Ollama and Anthropic backend blocks, and the prompt template directory path.
+
+### Operational Handoff — LLM Formatter
+
+After merge an operator who edits `config/llm.toml` to set `enabled = true`, installs the chosen backend (`augur-format[llm-local]` for Ollama, `augur-format[llm-cloud]` for Anthropic), and provisions any required credentials (`ANTHROPIC_API_KEY`) receives LLM-rendered briefs alongside the deterministic JSON and Markdown — but only for consumers whose `accepts_llm_assisted = true`. The deterministic pipeline runs regardless of LLM state.
+
 ### Added — Deterministic Formatters
 
 - `src/augur_format/deterministic/json_feed.py` — `to_canonical_json` emits UTF-8 JSON bytes with stable key ordering (top-level, signal block, related-market block), six-decimal float rounding (configurable), and Z-suffix UTC timestamps. Byte-identical across invocations.
