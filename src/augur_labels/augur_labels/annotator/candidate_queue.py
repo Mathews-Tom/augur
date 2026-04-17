@@ -46,5 +46,14 @@ class CandidateQueue:
     def pending(self) -> list[EventCandidate]:
         return [c for cid, c in self._candidates.items() if len(self._decisions.get(cid, [])) < 2]
 
+    def all_candidates(self) -> list[EventCandidate]:
+        return list(self._candidates.values())
+
+    def all_decisions(self) -> list[LabelDecision]:
+        flat: list[LabelDecision] = []
+        for decisions in self._decisions.values():
+            flat.extend(decisions)
+        return flat
+
     def __contains__(self, candidate_id: object) -> bool:
         return candidate_id in self._candidates

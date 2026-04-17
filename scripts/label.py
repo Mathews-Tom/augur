@@ -1,19 +1,21 @@
 """Annotator CLI entrypoint.
 
-Launches the two-annotator labeling workflow over the newsworthy-event
-feed per docs/methodology/labeling-protocol.md and persists labels to
-``labels/newsworthy_events.parquet``.
-
-Stub until the labeling workstream lands.
+Launches the augur-label click CLI over the newsworthy-event candidate
+queue and the append-only parquet corpus. Available commands are
+implemented in augur_labels.annotator.cli; run ``python scripts/label.py
+--help`` to discover them.
 """
 
 from __future__ import annotations
 
 import sys
 
+from augur_labels.annotator.cli import cli
+
 
 def main() -> int:
-    raise NotImplementedError("annotator CLI not yet implemented")
+    cli(standalone_mode=True)
+    return 0
 
 
 if __name__ == "__main__":
