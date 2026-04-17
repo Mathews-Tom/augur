@@ -1,0 +1,35 @@
+# Smoke-stack storage config. TimescaleDB runs under docker compose at
+# localhost:5432 with superuser augur/augur.
+#
+# Export:
+#     export AUGUR_TIMESCALE_URL=postgresql://augur:augur@localhost:5432/augur
+# before running workers or migration scripts.
+
+[backend]
+kind = "timescaledb"
+duckdb_path = "data/augur.duckdb"
+timescale_url_env = "AUGUR_TIMESCALE_URL"
+
+[connection]
+pool_size = 5
+max_overflow = 5
+pool_timeout_seconds = 10
+
+[migration]
+parquet_archive_root = "labels/snapshots_archive"
+dual_write_lag_alert_seconds = 10
+
+[hypertable]
+snapshot_chunk_interval_days = 1
+feature_chunk_interval_days = 1
+signal_chunk_interval_days = 7
+
+[retention]
+snapshot_retention_days = 0
+feature_retention_days = 30
+signal_retention_days = 0
+
+[compression]
+snapshot_compress_after_days = 7
+feature_compress_after_days = 7
+signal_compress_after_days = 30

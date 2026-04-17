@@ -1,0 +1,22 @@
+# Smoke-stack bus config pointing at the local compose services.
+
+[backend]
+kind = "nats"
+capacity = 256
+
+[nats]
+servers = ["nats://localhost:4222"]
+credentials_file_env = "NATS_CREDENTIALS_FILE"
+stream_name = "augur"
+replication_factor = 1
+subject_prefix = "augur"
+
+[redis]
+url_env = "REDIS_URL"
+stream_max_length = 10000
+consumer_group_prefix = "augur"
+block_ms = 1000
+
+[lock]
+ttl_seconds = 30
+renew_interval_seconds = 10

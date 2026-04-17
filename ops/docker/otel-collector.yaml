@@ -1,0 +1,21 @@
+# Minimal OTel collector config for the local smoke stack.
+# Accepts OTLP on 4317/4318 and logs every span to stdout so local
+# traces are inspectable without wiring Jaeger or Tempo.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug]
