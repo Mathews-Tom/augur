@@ -1,0 +1,42 @@
+# Labeling pipeline configuration. Schema mirrors
+# docs/methodology/labeling-protocol.md §Source Hierarchy and
+# phase-2 §11 verbatim. Annotator processes consume this file at
+# startup via augur_labels._config.LabelingConfig.
+
+[sources.reuters]
+enabled = true
+rate_limit_per_hour = 1000
+api_key_env = "REUTERS_API_KEY"
+
+[sources.bloomberg]
+enabled = true
+rate_limit_per_hour = 500
+client_id_env = "BLOOMBERG_CLIENT_ID"
+client_secret_env = "BLOOMBERG_CLIENT_SECRET"
+
+[sources.ap]
+enabled = true
+rate_limit_per_hour = 500
+api_key_env = "AP_API_KEY"
+
+[sources.ft]
+enabled = true
+rate_limit_per_hour = 200
+api_key_env = "FT_API_KEY"
+
+[workflow]
+double_label_window_days = 90
+timestamp_agreement_window_seconds = 60
+timestamp_hard_fail_seconds = 300
+market_jaccard_target = 0.85
+market_jaccard_hard_fail = 0.0
+category_kappa_target = 0.90
+event_existence_kappa_target = 0.95
+
+[storage]
+labels_root = "labels/newsworthy_events"
+file_lock_timeout_seconds = 30
+
+[join]
+lead_window_hours = 24
+true_negative_window_hours = 24
