@@ -1,9 +1,9 @@
 """AgreementReport — inter-annotator agreement metrics.
 
 Produced by the workflow enforcer before candidate promotion and by
-the agreement CLI command for retrospective analysis. The ``targets``
+the agreement CLI command for retrospective analysis. The `targets`
 in docs/methodology/labeling-protocol.md §Inter-Annotator Agreement
-are the thresholds that ``meets_targets`` checks.
+are the thresholds that `meets_targets` checks.
 """
 
 from __future__ import annotations

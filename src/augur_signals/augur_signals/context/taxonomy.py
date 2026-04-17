@@ -1,7 +1,7 @@
 """Curated market-taxonomy loader.
 
-Reads edges from ``config/markets.toml``'s ``[[relationships]]`` blocks
-or a dedicated taxonomy file. Only ``manual`` edges are supported in
+Reads edges from `config/markets.toml`'s `[[relationships]]` blocks
+or a dedicated taxonomy file. Only `manual` edges are supported in
 this workstream; embedding-derived edges land alongside the LLM
 formatter work.
 """

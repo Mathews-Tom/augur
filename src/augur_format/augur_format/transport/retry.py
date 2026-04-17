@@ -37,7 +37,7 @@ async def deliver_with_backoff[T](
 ) -> tuple[T, int]:
     """Invoke *factory* with exponential backoff.
 
-    Returns ``(result, attempts)`` where ``attempts`` is the 1-based
+    Returns `(result, attempts)` where `attempts` is the 1-based
     count of attempts up to and including the successful call so the
     caller can surface the actual attempt count in operational
     telemetry rather than hardcoding policy.max_retries.

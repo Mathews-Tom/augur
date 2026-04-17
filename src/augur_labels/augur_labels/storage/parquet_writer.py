@@ -1,21 +1,21 @@
 """Append-only Parquet writer with per-partition file locking.
 
-Events are partitioned by the date of ``ground_truth_timestamp``. Each
-partition lives at ``<root>/date=YYYY-MM-DD/events.parquet``. The
+Events are partitioned by the date of `ground_truth_timestamp`. Each
+partition lives at `<root>/date=YYYY-MM-DD/events.parquet`. The
 writer acquires a filelock on the partition before every read-modify-
 write so concurrent annotator processes do not corrupt the file.
 
 Operational ceiling
 -------------------
-Each ``append`` re-reads the partition, concats, and rewrites under
+Each `append` re-reads the partition, concats, and rewrites under
 the per-partition lock. For dense labeling days (dozens of events)
 this is O(n²) I/O; the ceiling is several hundred events per day
 before the 30 s default lock timeout becomes a bottleneck. Once the
 corpus approaches that volume, migrate to a sibling-file layout
-(``<partition>/events-<uuid>.parquet``) read via
-``pq.ParquetDataset`` so each append writes only the new rows.
-``supersede`` similarly scans every partition sequentially; an
-``event_id -> partition_date`` index lets it jump directly to the
+(`<partition>/events-<uuid>.parquet`) read via
+`pq.ParquetDataset` so each append writes only the new rows.
+`supersede` similarly scans every partition sequentially; an
+`event_id -> partition_date` index lets it jump directly to the
 partition at scale.
 """
 

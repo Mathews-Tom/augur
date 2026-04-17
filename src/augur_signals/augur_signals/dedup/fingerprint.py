@@ -1,7 +1,7 @@
 """Exact-fingerprint deduplication of raw signals.
 
-Two raw signals are duplicates if they share ``(market_id, signal_type,
-time_bucket(detected_at, bucket_seconds))``. Merge rules per
+Two raw signals are duplicates if they share `(market_id, signal_type,
+time_bucket(detected_at, bucket_seconds))`. Merge rules per
 docs/architecture/deduplication-and-storms.md §Signal Fingerprint:
 take the max magnitude, max confidence, union of manipulation_flags,
 union of related_market_ids, earliest detected_at, smallest

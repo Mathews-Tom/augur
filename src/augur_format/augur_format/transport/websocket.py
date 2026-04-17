@@ -89,10 +89,10 @@ class ClientSubscription:
 class WebSocketBroadcaster:
     """In-process broadcaster; adapts to a real websockets server easily.
 
-    The broadcaster manages per-client queues. A ``publish`` call
+    The broadcaster manages per-client queues. A `publish` call
     enqueues the frame for every subscriber whose consumer_type
     matches (or whose subscription is unfiltered). Queues are bounded
-    by ``per_connection_buffer``; enqueue on a full queue drops the
+    by `per_connection_buffer`; enqueue on a full queue drops the
     oldest frame to preserve timeliness, matching the dedup/storm
     doc's rationale for LIFO under pressure.
     """
@@ -151,9 +151,9 @@ class WebSocketBroadcaster:
 class HeartbeatScheduler:
     """Answers "should a heartbeat emit now?" against caller-supplied time.
 
-    The scheduler is mutable by design — ``record`` tracks the last
-    emission so ``should_emit`` can gate the next one. Engine code
-    owns the outer loop and passes ``now`` explicitly so the scheduler
+    The scheduler is mutable by design — `record` tracks the last
+    emission so `should_emit` can gate the next one. Engine code
+    owns the outer loop and passes `now` explicitly so the scheduler
     stays backtest-deterministic.
     """
 

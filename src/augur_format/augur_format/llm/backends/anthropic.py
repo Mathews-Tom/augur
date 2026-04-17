@@ -1,9 +1,9 @@
 """Anthropic backend adapter.
 
-Imports the anthropic SDK lazily via ``importlib.import_module`` so
+Imports the anthropic SDK lazily via `importlib.import_module` so
 that the llm-isolation test continues to assert anthropic is NOT
 importable in the default environment. Operators install anthropic
-via the ``augur-format[llm-cloud]`` extra before enabling the
+via the `augur-format[llm-cloud]` extra before enabling the
 backend.
 """
 

@@ -1,8 +1,8 @@
 """Configuration model for storage backend selection.
 
 Schema mirrors `config/storage.toml`. The Phase 1-4 monolith reads
-``backend.kind == "duckdb"``; Phase 5 cutover flips it to
-``"timescaledb"``. See `.docs/phase-5-scaling.md §5` for the cutover
+`backend.kind == "duckdb"`; Phase 5 cutover flips it to
+`"timescaledb"`. See `.docs/phase-5-scaling.md §5` for the cutover
 procedure and rollback constraints.
 """
 

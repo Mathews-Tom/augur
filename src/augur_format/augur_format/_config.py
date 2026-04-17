@@ -60,7 +60,7 @@ class FormatterConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
 
     # Field aliased so the TOML block is [json] per the documented
-    # schema, while the Python attribute is ``canonical_json`` to avoid
+    # schema, while the Python attribute is `canonical_json` to avoid
     # shadowing BaseModel.json.
     canonical_json: JsonConfig = Field(default_factory=JsonConfig, alias="json")
     markdown: MarkdownConfig = Field(default_factory=MarkdownConfig)

@@ -9,7 +9,7 @@ template.
 The builder is deterministic: identical SignalContext + identical
 forbidden-phrase list + identical template files always produce
 identical prompt strings. The prompt hash used for provenance is
-the SHA-256 of ``system + "\\n\\n" + user``.
+the SHA-256 of `system + "\\n\\n" + user`.
 """
 
 from __future__ import annotations

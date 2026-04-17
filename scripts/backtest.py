@@ -1,7 +1,7 @@
 """Backtest harness entrypoint.
 
 Replays historical snapshots from DuckDB through the live signal
-pipeline with ``now`` threaded deterministically, then computes
+pipeline with now threaded deterministically, then computes
 precision / recall / lead-time distributions per detector and liquidity
 tier against the labeled corpus per docs/methodology/labeling-protocol.md.
 

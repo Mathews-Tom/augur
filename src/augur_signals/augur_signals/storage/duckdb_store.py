@@ -1,8 +1,8 @@
 """DuckDB-backed persistence for snapshots, features, signals, and calibration state.
 
 Schema mirrors docs/architecture/system-design.md §Storage Schema.
-Migrations are version-numbered and idempotent; the ``initialize``
-method advances the ``schema_version`` table and applies pending
+Migrations are version-numbered and idempotent; the `initialize`
+method advances the `schema_version` table and applies pending
 migrations in order.
 """
 

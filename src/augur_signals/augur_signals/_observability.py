@@ -1,23 +1,23 @@
 """Observability primitives: metric counters, gauges, and trace spans.
 
-This module exposes ``MetricCounter``, ``MetricGauge``, and
-``trace_span``. Call sites build an instance by name+labels and invoke
-``inc`` / ``set`` / ``with trace_span(...)``; the concrete backend is
-swapped via ``configure_observability`` without touching instrumented
+This module exposes `MetricCounter`, `MetricGauge`, and
+`trace_span`. Call sites build an instance by name+labels and invoke
+`inc` / `set` / `with trace_span(...)`; the concrete backend is
+swapped via `configure_observability` without touching instrumented
 code. Three backend combinations are supported:
 
 * disabled — no-op shims. The Phase 1 default; suitable for unit tests
   and backtest runs where metric emission would pollute signal.
 * prometheus + otlp — the Phase 5 deployment. Metrics land in the
   prometheus_client default registry and a /metrics HTTP endpoint is
-  started via ``start_metrics_server``. Traces route through an
-  OpenTelemetry ``TracerProvider`` with OTLP export.
+  started via `start_metrics_server`. Traces route through an
+  OpenTelemetry `TracerProvider` with OTLP export.
 * mixed — independent knobs per surface (metrics disabled, traces on;
   or vice versa) for incremental rollout.
 
 The backend is a module-global singleton because prometheus_client and
 the OpenTelemetry SDK both maintain their own global state. Calling
-``configure_observability`` a second time rebuilds the backend and
+`configure_observability` a second time rebuilds the backend and
 replaces previously-registered collectors; this is only safe in tests.
 """
 
@@ -116,7 +116,7 @@ class _OTelTracer:
 class _Backend:
     """Module-level backend selector.
 
-    Holds factory callables so ``MetricCounter("foo", [...])`` can be
+    Holds factory callables so `MetricCounter("foo", [...])` can be
     built after configuration without rebuilding the class hierarchy.
     """
 
@@ -186,14 +186,14 @@ def configure_observability(
 ) -> None:
     """Activate real backends per *config*.
 
-    *registry* is the prometheus_client ``CollectorRegistry`` the
+    *registry* is the prometheus_client `CollectorRegistry` the
     backend registers counters and gauges with. Production leaves it
-    ``None`` so the default module-level registry is used; tests pass
-    a fresh ``CollectorRegistry()`` to isolate collectors between
+    `None` so the default module-level registry is used; tests pass
+    a fresh `CollectorRegistry()` to isolate collectors between
     cases.
 
     Leaves counters and gauges unregistered until their first
-    ``MetricCounter(name, labels)`` / ``MetricGauge(name, labels)`` call
+    `MetricCounter(name, labels)` / `MetricGauge(name, labels)` call
     so test suites can re-configure without colliding on the shared
     prometheus_client registry.
     """
@@ -203,7 +203,7 @@ def configure_observability(
 def start_metrics_server(config: ObservabilityConfig) -> None:
     """Start a /metrics HTTP listener on the configured bind/port.
 
-    Separate from ``configure_observability`` because the backtest
+    Separate from `configure_observability` because the backtest
     harness configures the backend without ever binding a port.
     """
     if config.metrics.kind != "prometheus":
@@ -214,12 +214,12 @@ def start_metrics_server(config: ObservabilityConfig) -> None:
 
 
 class MetricCounter:
-    """Monotonic counter. Call ``inc`` to increment.
+    """Monotonic counter. Call `inc` to increment.
 
     Attributes:
         name: Metric name exposed to the scraper.
         labels: Ordered list of label keys; values are provided at
-            ``inc`` time via keyword arguments.
+            `inc` time via keyword arguments.
     """
 
     def __init__(self, name: str, labels: list[str]) -> None:
@@ -233,12 +233,12 @@ class MetricCounter:
 
 
 class MetricGauge:
-    """Instantaneous value. Call ``set`` to overwrite.
+    """Instantaneous value. Call `set` to overwrite.
 
     Attributes:
         name: Metric name exposed to the scraper.
         labels: Ordered list of label keys; values are provided at
-            ``set`` time via keyword arguments.
+            `set` time via keyword arguments.
     """
 
     def __init__(self, name: str, labels: list[str]) -> None:

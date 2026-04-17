@@ -1,7 +1,7 @@
 """Reliability curves per (detector, liquidity_tier).
 
-Phase 1 ships with an identity-curve placeholder: ``calibrate(score) =
-score`` with ``curve_version = "identity_v0"``. This satisfies the
+Phase 1 ships with an identity-curve placeholder: `calibrate(score) =
+score` with `curve_version = "identity_v0"`. This satisfies the
 MarketSignal calibration_provenance invariant during the warmup period
 before real curves can be built from a labeled corpus. Subsequent
 workstreams consume labels to fit empirical curves, which are then

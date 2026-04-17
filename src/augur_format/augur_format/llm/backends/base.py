@@ -1,7 +1,7 @@
 """AbstractLLMBackend protocol and completion result model.
 
 Concrete adapters (Ollama, Anthropic) implement the same async
-``complete`` surface so the interpreter dispatches uniformly. The
+`complete` surface so the interpreter dispatches uniformly. The
 completion result exposes only the fields downstream actually needs:
 the raw text, token counts for observability, and the duration in
 milliseconds for the generation-latency SLO.
@@ -45,7 +45,7 @@ class AbstractLLMBackend(Protocol):
         ...
 
     def model_id(self) -> str:
-        """Return the active model identifier (e.g. ``gemma2:27b``)."""
+        """Return the active model identifier (e.g. `gemma2:27b`)."""
         ...
 
     async def health_check(self) -> bool:

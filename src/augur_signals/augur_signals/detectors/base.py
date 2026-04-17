@@ -1,14 +1,14 @@
 """SignalDetector protocol.
 
-Every detector implements this surface. ``now`` is a parameter rather
-than sourced from ``datetime.now()`` so backtests reproduce live
+Every detector implements this surface. `now` is a parameter rather
+than sourced from `datetime.now()` so backtests reproduce live
 behavior bit-for-bit; the CI AST lint in scripts/ rejects any detector
-module that calls ``datetime.now()`` directly.
+module that calls `datetime.now()` directly.
 
-Each detector is stateful per market (``state_dict`` / ``load_state``
+Each detector is stateful per market (`state_dict` / `load_state`
 so detector progress survives process restarts) and serializable for
-the engine's periodic checkpoint. Detectors return ``None`` when no
-signal fires; a ``MarketSignal`` instance carries the full calibrated
+the engine's periodic checkpoint. Detectors return `None` when no
+signal fires; a `MarketSignal` instance carries the full calibrated
 event per docs/contracts/schema-and-versioning.md §MarketSignal.
 """
 

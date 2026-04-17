@@ -3,7 +3,7 @@
 Signals fire only when (1) the market has sufficient total resting
 depth (the depth gate keeps the detector silent on thin books where
 the imbalance is likely a manipulation artifact), and (2) the
-imbalance persists for ``persistence_snapshots`` consecutive ticks.
+imbalance persists for `persistence_snapshots` consecutive ticks.
 """
 
 from __future__ import annotations

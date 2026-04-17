@@ -1,6 +1,6 @@
 """Consumer registry loader.
 
-Reads ``config/consumers.toml`` (seeded in the workspace bootstrap)
+Reads `config/consumers.toml` (seeded in the workspace bootstrap)
 and exposes the per-category consumer routing plus per-consumer
 transport configuration. The router consumes the registry to decide
 which consumers should receive a given signal.
@@ -32,7 +32,7 @@ class ConsumerRegistry:
     def consumers_for_category(self, category: str) -> tuple[ConsumerType, ...]:
         """Return the default consumers for *category*.
 
-        Unknown categories fall through to ``default`` — matching the
+        Unknown categories fall through to `default` — matching the
         Routing Table in docs/contracts/consumer-registry.md.
         """
         if category in self._routing:

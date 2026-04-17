@@ -6,7 +6,7 @@ related-market pair with a configured historical correlation at or
 above the threshold, the detector computes the current Spearman rank
 correlation, applies the Fisher-z transform, and compares the z to the
 prior z. Pairs whose divergence p-value survives BH-FDR at the target
-``q`` produce signals per docs/methodology/calibration-methodology.md
+`q` produce signals per docs/methodology/calibration-methodology.md
 §Cross-Market Divergence.
 """
 

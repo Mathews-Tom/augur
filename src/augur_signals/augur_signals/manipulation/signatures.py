@@ -51,7 +51,7 @@ def size_vs_depth_outlier(
     prior_book_depth: float,
     threshold_ratio: float,
 ) -> bool:
-    """True when a single trade consumed more than ``threshold_ratio`` of depth."""
+    """True when a single trade consumed more than `threshold_ratio` of depth."""
     if prior_book_depth <= 0.0:
         return False
     return (trade.size / prior_book_depth) > threshold_ratio

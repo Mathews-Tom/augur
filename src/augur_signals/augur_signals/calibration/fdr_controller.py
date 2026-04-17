@@ -1,8 +1,8 @@
 """Benjamini-Hochberg FDR controller shared across detectors.
 
 Detectors that batch p-values per polling cycle submit
-``(signal_id, p_value)`` pairs via :meth:`submit_pvalues`; the
-controller applies BH correction at the configured target ``q`` and
+`(signal_id, p_value)` pairs via :meth:`submit_pvalues`; the
+controller applies BH correction at the configured target `q` and
 returns the set of signal IDs that pass. See
 docs/methodology/calibration-methodology.md §BH-FDR for the rationale.
 """
@@ -15,11 +15,11 @@ from augur_signals.calibration._config import CalibrationConfig
 
 
 def benjamini_hochberg(p_values: Sequence[float], q: float) -> list[bool]:
-    """Return a boolean mask marking each hypothesis accepted at FDR ``q``.
+    """Return a boolean mask marking each hypothesis accepted at FDR `q`.
 
     Implements the Benjamini-Hochberg step-up procedure: sort p-values
-    ascending, find the largest rank ``k`` such that ``p_(k) ≤ (k/m) q``,
-    accept all hypotheses whose p-value is at most ``p_(k)``.
+    ascending, find the largest rank `k` such that `p_(k) ≤ (k/m) q`,
+    accept all hypotheses whose p-value is at most `p_(k)`.
     """
     m = len(p_values)
     if m == 0:

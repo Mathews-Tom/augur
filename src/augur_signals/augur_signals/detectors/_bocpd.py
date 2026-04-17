@@ -4,10 +4,10 @@ Reference: Adams & MacKay 2007 ("Bayesian Online Changepoint
 Detection", arXiv 0710.3742), adapted for observations in [0, 1].
 Each observation x is treated as the probability of a single
 Bernoulli trial so the conjugate Beta-Binomial predictive
-``alpha / (alpha + beta) * x + beta / (alpha + beta) * (1 - x)``
+`alpha / (alpha + beta) * x + beta / (alpha + beta) * (1 - x)`
 applies directly.
 
-The run-length distribution is capped at ``run_length_cap`` so memory
+The run-length distribution is capped at `run_length_cap` so memory
 is bounded; for a hazard of 1/250 and a cap of 1000 the truncation
 error on the fire decision is negligible (<1e-6).
 """
@@ -46,7 +46,7 @@ class BetaBinomialBOCPD:
     def update(self, observation: float) -> tuple[float, float]:
         """Process one observation.
 
-        Returns the tuple ``(P(r_t < 5), E[r_t])`` where ``r_t`` is the
+        Returns the tuple `(P(r_t < 5), E[r_t])` where `r_t` is the
         run length in observations since the last change point.
         """
         if not 0.0 <= observation <= 1.0:
@@ -64,7 +64,7 @@ class BetaBinomialBOCPD:
         new_pr[0] = change_mass
         # Growth shifts run length up by one. Mass that would otherwise
         # land at cap+1 is absorbed back into the cap bucket so the
-        # run-length distribution does not leak probability as ``t`` grows
+        # run-length distribution does not leak probability as `t` grows
         # past the cap.
         for i in range(1, self._cap):
             new_pr[i] = growth[i - 1]

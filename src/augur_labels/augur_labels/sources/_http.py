@@ -1,6 +1,6 @@
 """Shared httpx client helpers with exponential backoff.
 
-Every source adapter routes its calls through ``request_with_backoff``
+Every source adapter routes its calls through `request_with_backoff`
 so retry semantics stay consistent: 1 s initial delay, doubling to a
 60 s cap, 5-retry max on any exception. The helper is parameterized
 over the request factory so the session's headers, auth, and URL

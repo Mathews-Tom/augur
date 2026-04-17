@@ -3,7 +3,7 @@
 Computes Population Stability Index (PSI) and a Kolmogorov-Smirnov
 statistic over baseline vs current score populations. When either
 metric exceeds its configured threshold, the monitor flags a
-``CalibrationStaleEvent`` for operations review so the detector
+`CalibrationStaleEvent` for operations review so the detector
 thresholds can be retuned.
 """
 

@@ -1,7 +1,7 @@
 """Canonical JSON formatter for SignalContext.
 
 Serializes a SignalContext with stable key ordering, float rounding,
-and ISO-8601 UTC timestamps with a ``Z`` suffix. The determinism
+and ISO-8601 UTC timestamps with a `Z` suffix. The determinism
 contract: same SignalContext in, byte-identical JSON out across any
 number of invocations. Consumers can hash the bytes and rely on
 stable equality.

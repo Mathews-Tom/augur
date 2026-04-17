@@ -1,7 +1,7 @@
 """AbstractSourceAdapter protocol.
 
 Every concrete wire-service adapter implements this surface so the
-annotator CLI's ``discover`` command can fetch publications across
+annotator CLI's `discover` command can fetch publications across
 sources uniformly. Source-specific auth, rate-limiting, and response-
 shape handling stay in the concrete adapter; callers see only
 SourcePublication.

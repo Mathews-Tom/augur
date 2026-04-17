@@ -12,7 +12,7 @@ def _configure_logging_for_tests() -> None:
     """Initialize structlog once per session at WARNING.
 
     Individual tests that exercise logging output reconfigure to the
-    level they need via ``augur_signals._logging.configure_logging``.
+    level they need via `augur_signals._logging.configure_logging`.
     """
     from augur_signals._logging import configure_logging
 
