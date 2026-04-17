@@ -32,22 +32,25 @@ Read these before writing or modifying any code:
 3. `methodology/calibration-methodology.md` — confidence pipeline
 4. `methodology/labeling-protocol.md` — ground-truth definition
 5. `methodology/manipulation-taxonomy.md` — manipulation signatures
-6. `architecture/system-design.md` — layer-by-layer architecture
+6. `architecture/system-design.md` — layer-by-layer architecture (includes Deployment Modes)
 7. `architecture/adaptive-polling-spec.md` — polling state machine
 8. `architecture/deduplication-and-storms.md` — signal merge algorithm
 9. `architecture/storage-and-scaling.md` — storage architecture and migration triggers
+10. `operations/distributed-runbook.md` — cutover, rollback, failover procedures
+11. `operations/manual-testing.md` — runnable surfaces and local smoke stack
 
 ## Group Index
 
-| Group               | Purpose                                               |
-| ------------------- | ----------------------------------------------------- |
-| `foundations/`      | Project framing, scope, vocabulary, outward case      |
-| `contracts/`        | Data schemas and registries that bind layers together |
-| `methodology/`      | Statistical, algorithmic, and process methodology     |
-| `architecture/`     | System architecture, storage, polling, signal merging |
-| `strategy/`         | Risk register and defensibility analysis              |
-| `examples/`         | Worked positive-path and negative-path examples       |
-| `open-questions.md` | Unresolved decisions with current best answers        |
+| Group               | Purpose                                                      |
+| ------------------- | ------------------------------------------------------------ |
+| `foundations/`      | Project framing, scope, vocabulary, outward case             |
+| `contracts/`        | Data schemas and registries that bind layers together        |
+| `methodology/`      | Statistical, algorithmic, and process methodology            |
+| `architecture/`     | System architecture, storage, polling, signal merging        |
+| `operations/`       | Distributed-runtime runbook and manual-testing guide         |
+| `strategy/`         | Risk register and defensibility analysis                     |
+| `examples/`         | Worked positive-path and negative-path examples              |
+| `open-questions.md` | Unresolved decisions with current best answers               |
 
 ## Conventions
 

@@ -75,12 +75,20 @@ The diagram reflects the deterministic-context-primary architecture. The LLM for
 
 ```text
 augur/
-├── pyproject.toml
+├── pyproject.toml                  # uv workspace root (v0.1.0)
 ├── README.md
 ├── config/
-│   ├── default.toml
-│   ├── markets.toml
+│   ├── bus.toml                    # phase 5 — message bus backend selector
+│   ├── storage.toml                # phase 5 — DuckDB / TimescaleDB selector
+│   ├── observability.toml          # phase 5 — Prometheus + OTel exporters
+│   ├── llm.toml                    # phase 4 — gated LLM formatter
+│   ├── polling.toml
 │   ├── detectors.toml
+│   ├── dedup.toml
+│   ├── formatters.toml
+│   ├── consumers.toml
+│   ├── labeling.toml
+│   ├── markets.toml
 │   └── forbidden_tokens.toml
 ├── data/
 │   ├── markets/
@@ -90,26 +98,39 @@ augur/
 │   └── newsworthy_events.parquet
 ├── src/
 │   ├── augur_signals/
-│   │   ├── models/                # MarketSnapshot, FeatureVector, MarketSignal, enums
-│   │   ├── ingestion/             # Pollers, normalizer
-│   │   ├── features/              # Rolling-window feature pipeline
-│   │   ├── detectors/             # 5 detectors + base protocol
-│   │   ├── manipulation/          # Signature catalog + evaluator
-│   │   ├── calibration/           # FPR, BH-FDR, reliability curves, drift, FDR controller
-│   │   ├── context/               # Deterministic context assembler
-│   │   ├── storage/               # DuckDB persistence
-│   │   ├── bus/                   # Async event bus
-│   │   ├── dedup/                 # Signal dedup + storm handling
-│   │   └── engine.py              # Orchestrator
-│   ├── augur_labels/              # Labeling pipeline
+│   │   ├── models/                 # MarketSnapshot, FeatureVector, MarketSignal, enums
+│   │   ├── ingestion/              # Pollers, normalizer
+│   │   ├── features/               # Rolling-window feature pipeline
+│   │   ├── detectors/              # 5 detectors + base protocol
+│   │   ├── manipulation/           # Signature catalog + evaluator
+│   │   ├── calibration/            # FPR, BH-FDR, reliability curves, drift, FDR controller
+│   │   ├── context/                # Deterministic context assembler
+│   │   ├── storage/                # DuckDB + TimescaleDB adapters (phase 5)
+│   │   ├── bus/                    # EventBus protocol + NATS + Redis + distributed lock (phase 5)
+│   │   ├── workers/                # Harness, singleton runner, bootstrap (phase 5)
+│   │   ├── dedup/                  # Signal dedup + storm handling
+│   │   └── engine.py               # Monolith orchestrator
+│   ├── augur_labels/               # Labeling pipeline (phase 2)
 │   └── augur_format/
-│       ├── deterministic/         # JSON, Markdown templates
-│       └── llm/                   # Gated LLM formatter (Phase 4)
+│       ├── deterministic/          # JSON, Markdown, webhook, websocket (phase 3)
+│       └── llm/                    # Gated LLM formatter (phase 4)
 ├── tests/
-└── scripts/
-    ├── backtest.py
-    ├── calibrate.py
-    └── label.py
+├── scripts/
+│   ├── backtest.py                 # stub
+│   ├── calibrate.py                # stub
+│   ├── export_schemas.py
+│   ├── label.py
+│   ├── lint_detector_now.py
+│   ├── migrate_to_timescale.py     # phase 5 — backfill + verify
+│   └── dual_write_sidecar.py       # phase 5 — tee replay
+└── ops/
+    ├── docker/                     # Dockerfile + local smoke compose stack
+    │   ├── Dockerfile
+    │   ├── compose.yaml
+    │   ├── prometheus.yml
+    │   ├── otel-collector.yaml
+    │   └── config/                 # smoke-specific bus/storage/observability TOMLs
+    └── deploy/                     # Kubernetes manifests (Deployments, StatefulSets, HPA, Services)
 ```
 
 The `src/augur_signals/` package contains zero LLM imports. CI enforces this via grep. The `src/augur_format/llm/` package is the only location where LLM code lives; it is gated behind `interpretation_mode = LLM_ASSISTED` and is opt-in per consumer.
