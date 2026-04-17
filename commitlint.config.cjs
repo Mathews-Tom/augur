@@ -25,6 +25,9 @@ module.exports = {
     "subject-case": [2, "never", ["pascal-case", "upper-case", "start-case"]],
     "subject-empty": [2, "never"],
     "subject-full-stop": [2, "never", "."],
-    "header-max-length": [2, "always", 100],
+    // Commit-standards soft-caps at 72; commitlint hard-caps at 120 so
+    // long "feat(subsystem): ... a, b, c" summaries for multi-module
+    // commits do not fail CI after the fact.
+    "header-max-length": [2, "always", 120],
   },
 };
