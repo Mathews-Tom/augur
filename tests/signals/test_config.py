@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from augur_signals._config import load_config
 from pydantic import BaseModel, ValidationError
+
+from augur_signals._config import load_config
 
 
 class _Engine(BaseModel):

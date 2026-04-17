@@ -47,6 +47,9 @@ ignore = ["ANN401"]
 "tests/**" = ["S101", "ANN", "B018"]
 "scripts/**" = ["T201"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["augur_signals", "augur_labels", "augur_format"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
