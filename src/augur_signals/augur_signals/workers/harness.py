@@ -1,14 +1,14 @@
 """Worker harness orchestrating connect → run → shutdown with heartbeat.
 
-Every worker process builds a ``WorkerHarness`` from its main module
-and calls ``run`` to enter the supervisory loop. The harness connects
+Every worker process builds a `WorkerHarness` from its main module
+and calls `run` to enter the supervisory loop. The harness connects
 to the event bus, optionally starts a heartbeat task, and drives the
-worker's ``process_once`` coroutine until a shutdown signal (SIGINT /
+worker's `process_once` coroutine until a shutdown signal (SIGINT /
 SIGTERM) flips the stop flag. On shutdown it awaits the pending batch
 then closes the bus.
 
-The harness stays backend-agnostic: it consumes the ``EventBus``
-protocol from ``bus/base.py`` and a ``HeartbeatEmitter`` protocol that
+The harness stays backend-agnostic: it consumes the `EventBus`
+protocol from `bus/base.py` and a `HeartbeatEmitter` protocol that
 callers plug in with concrete implementations. Stateless workers pass
 a no-op emitter; singletons pass a lock-holding emitter that renews
 the distributed lock each beat.
@@ -48,15 +48,15 @@ class WorkerHarness:
 
     Attributes:
         worker_kind: Short identifier used as a metric label and log
-            field (``"feature"``, ``"detector"``, ``"dedup"``, ...).
+            field (`"feature"`, `"detector"`, `"dedup"`, ...).
         replica_id: Stable identifier for this specific replica. In
             Kubernetes this is the pod name; on bare-metal deployments
             operators supply it through an env var.
         bus: EventBus connection to open at startup and close on exit.
         main: Coroutine the harness drives to completion; the coroutine
-            is expected to honour ``stop_event`` via ``should_stop``.
-        heartbeat: Optional emitter whose ``beat`` fires every
-            ``heartbeat_interval_seconds``. Defaults to a no-op.
+            is expected to honour `stop_event` via `should_stop`.
+        heartbeat: Optional emitter whose `beat` fires every
+            `heartbeat_interval_seconds`. Defaults to a no-op.
         heartbeat_interval_seconds: Seconds between beats.
     """
 

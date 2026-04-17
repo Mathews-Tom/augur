@@ -1,8 +1,8 @@
 """Poller worker entrypoint — one per platform.
 
 The poller subscribes to the platform's public market API via the
-Phase 1 ``AdaptivePoller`` and forwards every normalized snapshot to
-``augur.snapshots.<platform>.<market_id>`` on the event bus.
+Phase 1 `AdaptivePoller` and forwards every normalized snapshot to
+`augur.snapshots.<platform>.<market_id>` on the event bus.
 
 Run as:
     python -m augur_signals.workers.poller --platform polymarket
@@ -10,7 +10,7 @@ Run as:
 The main coroutine stays thin — it wires the harness to the existing
 Phase 1 polling stack. The heavy lifting (adaptive backoff, rate
 limiting, DLQ, manipulation hints) already lives in
-``augur_signals.ingestion``; this module only glues it to the bus.
+`augur_signals.ingestion`; this module only glues it to the bus.
 """
 
 from __future__ import annotations
@@ -29,9 +29,9 @@ from augur_signals.workers.subjects import snapshots
 class SnapshotSource(Protocol):
     """Abstract snapshot producer for the poller worker.
 
-    Phase 1's ``AdaptivePoller`` implements this; tests pass a simple
+    Phase 1's `AdaptivePoller` implements this; tests pass a simple
     stub. The poller does not own market discovery — that lives in
-    ``augur_signals.ingestion``.
+    `augur_signals.ingestion`.
     """
 
     def stream(self) -> AsyncIterator[MarketSnapshot]: ...
@@ -61,7 +61,7 @@ def build_harness(
     source: SnapshotSource,
     subject_prefix: str,
 ) -> WorkerHarness:
-    """Assemble a ``WorkerHarness`` around ``run_poller`` for *platform*."""
+    """Assemble a `WorkerHarness` around `run_poller` for *platform*."""
 
     async def _main(harness: WorkerHarness) -> None:
         await run_poller(harness, source, subject_prefix)
@@ -85,11 +85,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main_factory_for(
     platform: str,
 ) -> Callable[[EventBus, SnapshotSource, str, str], WorkerHarness]:
-    """Curry ``build_harness`` for a given platform.
+    """Curry `build_harness` for a given platform.
 
-    Entrypoint scripts under ``python -m augur_signals.workers.poller``
+    Entrypoint scripts under `python -m augur_signals.workers.poller`
     call this after parsing args; full container startup wires in the
-    concrete ``SnapshotSource`` from ``augur_signals.ingestion``.
+    concrete `SnapshotSource` from `augur_signals.ingestion`.
     """
 
     def _build(

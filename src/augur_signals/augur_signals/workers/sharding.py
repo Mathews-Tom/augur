@@ -1,9 +1,9 @@
 """Deterministic shard-key filter for stateful per-market workers.
 
-Feature workers and detector workers shard by ``market_id`` so the
+Feature workers and detector workers shard by `market_id` so the
 same market's observations always land on the same replica. The
 sharding function is FNV-1a over the UTF-8 bytes of the key modulo
-``replica_count``, which is stable across processes and languages.
+`replica_count`, which is stable across processes and languages.
 """
 
 from __future__ import annotations
@@ -17,15 +17,15 @@ def shard_index(key: str, replica_count: int) -> int:
     """Return the 0-based shard index for *key* in a pool of *replica_count*.
 
     Args:
-        key: The shard key (usually ``market_id``).
+        key: The shard key (usually `market_id`).
         replica_count: Total number of replicas in the pool; must be
             positive.
 
     Returns:
-        An integer in ``[0, replica_count)``.
+        An integer in `[0, replica_count)`.
 
     Raises:
-        ValueError: ``replica_count`` is zero or negative.
+        ValueError: `replica_count` is zero or negative.
     """
     if replica_count <= 0:
         raise ValueError("replica_count must be positive")

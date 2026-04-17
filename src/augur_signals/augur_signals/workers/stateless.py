@@ -2,7 +2,7 @@
 
 Each of these workers consumes from one subject, runs a pure function
 against the message payload, and publishes the output to another
-subject. They share the ``run_bridge`` supervisor so the per-kind
+subject. They share the `run_bridge` supervisor so the per-kind
 entrypoints stay tiny: they supply a deserializer, a transform, a
 serializer, and the input/output subjects.
 
@@ -47,7 +47,7 @@ async def run_bridge[InT, OutT](
     """Consume *input_pattern*, transform each payload, publish outputs.
 
     Args:
-        harness: The owning ``WorkerHarness``. Supplies the bus and
+        harness: The owning `WorkerHarness`. Supplies the bus and
             stop signal.
         input_pattern: Subject pattern to subscribe to.
         output_subject_builder: Function returning the subject to

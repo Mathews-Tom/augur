@@ -1,15 +1,15 @@
 """TimescaleDB-backed persistence mirroring the DuckDBStore surface.
 
-The adapter is a thin facade over ``psycopg`` that issues the same
+The adapter is a thin facade over `psycopg` that issues the same
 schema statements the DuckDB store does, then converts the time-series
 tables into TimescaleDB hypertables and attaches compression and
 retention policies. Every public method has a matching method on
-``DuckDBStore`` so engine code flips backends via configuration without
+`DuckDBStore` so engine code flips backends via configuration without
 call-site edits.
 
 The connection is injected so unit tests can swap in fakes or
 sqlite-backed shims. Production startup reads the DSN from the env var
-named in ``storage.toml``; the adapter itself does not know about the
+named in `storage.toml`; the adapter itself does not know about the
 filesystem.
 """
 
@@ -140,7 +140,7 @@ class TimescaleDBStore:
 
     Attributes:
         CURRENT_SCHEMA_VERSION: Integer version stamped into the
-            ``schema_version`` table after ``initialize`` applies all
+            `schema_version` table after `initialize` applies all
             pending migrations.
     """
 

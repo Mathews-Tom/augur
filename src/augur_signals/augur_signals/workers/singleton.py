@@ -1,19 +1,19 @@
 """Active-passive singleton worker pair with distributed-lock failover.
 
 Dedup and the LLM formatter run as one active instance with one passive
-peer. The pair coordinates through a ``DistributedLock``:
+peer. The pair coordinates through a `DistributedLock`:
 
-* Both replicas boot and try to ``acquire`` the shared lock.
+* Both replicas boot and try to `acquire` the shared lock.
 * Whoever wins is **active** and starts processing. It renews the lock
-  every ``renew_interval_seconds``.
+  every `renew_interval_seconds`.
 * The loser is **passive**; it sits in a retry loop checking whether
   the lock is available. It processes nothing until it takes over.
 * If the active replica crashes or is partitioned, its lock TTL lapses
   and the passive's retry loop acquires, then begins processing.
 
-``SingletonHeartbeat`` is the ``HeartbeatEmitter`` the WorkerHarness
+`SingletonHeartbeat` is the `HeartbeatEmitter` the WorkerHarness
 binds to: each beat renews the lock; losing the lock flips the worker
-into passive mode, which the harness observes through a ``False``
+into passive mode, which the harness observes through a `False`
 return and shuts down so the orchestrator restarts the process
 (which then goes through the acquire loop again, this time winning).
 """
@@ -37,7 +37,7 @@ from augur_signals.workers.harness import HeartbeatEmitter, WorkerHarness
 class SingletonHeartbeat:
     """HeartbeatEmitter that renews a distributed lock each beat.
 
-    Returning False from ``beat`` signals the harness to stop. This
+    Returning False from `beat` signals the harness to stop. This
     happens when the lock was lost (another replica acquired) or the
     lock backend raises a terminal error.
     """
@@ -77,9 +77,9 @@ async def acquire_active_role(
 
     Args:
         lock: The distributed lock to acquire.
-        lock_name: Singleton role name (``"dedup"`` / ``"llm_formatter"``).
+        lock_name: Singleton role name (`"dedup"` / `"llm_formatter"`).
         holder_id: This replica's stable identifier.
-        config: ``LockBody`` carrying TTL / renew interval.
+        config: `LockBody` carrying TTL / renew interval.
         wait_tick_seconds: Poll cadence while passive.
         max_wait_ticks: Optional cap on ticks before giving up; None
             means wait forever (the production default). Tests pass a
@@ -102,14 +102,14 @@ async def acquire_active_role(
 
 @dataclass(slots=True)
 class SingletonRunner:
-    """Glue that turns a singleton workload into a ``WorkerHarness`` run.
+    """Glue that turns a singleton workload into a `WorkerHarness` run.
 
     Attributes:
         lock_name: Singleton role name; matches the keys in the
             distributed lock backend.
         bus: EventBus connection used by the main coroutine.
         lock: DistributedLock coordinating active/passive.
-        config: ``LockBody`` holding TTL and renew interval.
+        config: `LockBody` holding TTL and renew interval.
         main: Coroutine run while holding the active role.
     """
 

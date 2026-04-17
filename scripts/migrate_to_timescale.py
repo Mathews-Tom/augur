@@ -9,13 +9,13 @@ Usage:
         --start 2026-01-01 --end 2026-04-01
 
 The script reads partitioned Parquet files in chronological order and
-bulk-inserts them into TimescaleDB using ``COPY`` for throughput. Per
+bulk-inserts them into TimescaleDB using `COPY` for throughput. Per
 partition it verifies row-count parity: the number of rows in the
 Parquet file must match the number of rows the adapter reports landing
 in the hypertable. On mismatch the script aborts before moving on so
 the operator can investigate before the partition is replayed.
 
-``verify`` re-runs a (market, day) group-count parity query between
+`verify` re-runs a (market, day) group-count parity query between
 DuckDB and TimescaleDB for the requested window without inserting any
 data. Operators run verify after backfill to confirm byte-for-byte
 parity before the dual-write cutover.
@@ -51,11 +51,11 @@ async def backfill(
         batch_size: Rows per COPY batch. Tuned at operations time; 10k
             is a reasonable starting point.
         connection_factory: Async callable opening a new
-            ``AsyncConnection`` per partition so long-running backfill
+            `AsyncConnection` per partition so long-running backfill
             runs recycle connections.
 
     Returns:
-        ``BackfillSummary`` with the partition count and total rows.
+        `BackfillSummary` with the partition count and total rows.
 
     Raises:
         MigrationError: A partition's reported insert count did not
@@ -111,7 +111,7 @@ ConnectionFactory = Callable[[], AbstractAsyncContextManager["AsyncConnection[ob
 
 @dataclass(frozen=True, slots=True)
 class BackfillSummary:
-    """Result of ``backfill``."""
+    """Result of `backfill`."""
 
     partition_count: int
     total_rows: int
@@ -119,7 +119,7 @@ class BackfillSummary:
 
 @dataclass(frozen=True, slots=True)
 class VerifySummary:
-    """Result of ``verify``."""
+    """Result of `verify`."""
 
     duckdb_groups: int
     timescale_groups: int
@@ -127,7 +127,7 @@ class VerifySummary:
 
 
 def _discover_partitions(source_root: Path) -> list[Path]:
-    """Return partitions in chronological order (``date=YYYY-MM-DD`` layout)."""
+    """Return partitions in chronological order (`date=YYYY-MM-DD` layout)."""
     if not source_root.exists():
         raise MigrationError(f"Source root does not exist: {source_root}")
     partitions = sorted(
@@ -156,7 +156,7 @@ async def _copy_partition_into_timescale(
 
     The implementation relies on the operator-supplied DSN pointing at
     a TimescaleDB hypertable that already exists (via
-    ``TimescaleDBStore.initialize``). The script does not create
+    `TimescaleDBStore.initialize`). The script does not create
     schemas — cutover sequencing is operator-driven.
     """
     import pyarrow.parquet as pq

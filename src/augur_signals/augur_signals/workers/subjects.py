@@ -2,8 +2,8 @@
 
 A single module owns the subject strings so producers and consumers
 stay aligned. Every helper returns a full subject with the configured
-prefix so callers pass the result straight into ``bus.publish`` /
-``bus.subscribe``.
+prefix so callers pass the result straight into `bus.publish` /
+`bus.subscribe`.
 """
 
 from __future__ import annotations
