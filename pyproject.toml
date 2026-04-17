@@ -62,7 +62,10 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-ra --strict-markers --cov=src --cov-report=term-missing --cov-fail-under=80"
+# --cov-fail-under is applied only in CI so that targeted local runs
+# (for example, pytest tests/signals/test_config.py) do not fail the
+# threshold check against a single module's coverage.
+addopts = "-ra --strict-markers --cov=src --cov-report=term-missing"
 markers = [
     "unit: unit tests",
     "integration: integration tests requiring external services",

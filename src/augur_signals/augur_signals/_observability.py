@@ -30,7 +30,7 @@ class MetricCounter:
         self.name = name
         self.labels = list(labels)
 
-    def inc(self, value: float = 1.0, **label_values: str) -> None:
+    def inc(self, value: float = 1.0, **label_values: str | int | float) -> None:
         """Increment the counter. No-op in the shim implementation."""
         _ = value, label_values
 
@@ -47,7 +47,7 @@ class MetricGauge:
         self.name = name
         self.labels = list(labels)
 
-    def set(self, value: float, **label_values: str) -> None:
+    def set(self, value: float, **label_values: str | int | float) -> None:
         """Set the gauge. No-op in the shim implementation."""
         _ = value, label_values
 
