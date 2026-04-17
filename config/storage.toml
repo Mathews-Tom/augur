@@ -1,0 +1,47 @@
+# Storage backend configuration.
+#
+# The Phase 1-4 monolith runs with backend.kind = "duckdb" and the
+# local Parquet archive. Cutover to TimescaleDB flips backend.kind
+# to "timescaledb" and restarts the engine; rollback flips it back.
+# See `.docs/phase-5-scaling.md §5` for the cutover procedure.
+
+[backend]
+# One of: "duckdb" | "timescaledb".
+kind = "duckdb"
+# Path used when kind == "duckdb".
+duckdb_path = "data/augur.duckdb"
+# Env var holding the PostgreSQL DSN when kind == "timescaledb".
+timescale_url_env = "AUGUR_TIMESCALE_URL"
+
+[connection]
+pool_size = 20
+max_overflow = 10
+pool_timeout_seconds = 30
+
+[migration]
+parquet_archive_root = "labels/snapshots_archive"
+# Dual-write sidecar alerts when the observed per-table lag exceeds
+# this threshold. The 7-day dual-write window lives operationally;
+# the sidecar surfaces breaches but does not auto-rollback.
+dual_write_lag_alert_seconds = 10
+
+[hypertable]
+# Chunk intervals per hypertable. Tuned so the hot-vs-cold boundary
+# lines up with the compression policy below.
+snapshot_chunk_interval_days = 1
+feature_chunk_interval_days = 1
+signal_chunk_interval_days = 7
+
+[retention]
+# Retention policies per TimescaleDB hypertable. A zero value skips
+# the retention policy (rows never drop).
+snapshot_retention_days = 0
+feature_retention_days = 30
+signal_retention_days = 0
+
+[compression]
+# Chunks older than this threshold compress automatically. Set to
+# zero to disable compression on a given hypertable.
+snapshot_compress_after_days = 7
+feature_compress_after_days = 7
+signal_compress_after_days = 30

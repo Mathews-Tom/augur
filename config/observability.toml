@@ -1,0 +1,28 @@
+# Observability backend configuration.
+#
+# Phase 1-4 used no-op shims; Phase 5 replaces them with
+# prometheus-client counters/gauges and an OpenTelemetry tracer. Call
+# sites are unchanged. When the kind fields below are "disabled" the
+# backends stay silent — useful for unit tests and backtest runs.
+
+[metrics]
+# One of: "disabled" | "prometheus".
+kind = "prometheus"
+# Bound address for the /metrics HTTP endpoint. The worker-harness
+# start-up path opens the listener before running subscriptions.
+prometheus_bind = "0.0.0.0"
+prometheus_port = 9090
+
+[traces]
+# One of: "disabled" | "otlp".
+kind = "otlp"
+otlp_endpoint = "http://otel-collector:4317"
+service_name = "augur"
+# Fraction of spans sampled. At 0.0 the tracer is wired but records
+# no spans; at 1.0 every span is recorded. 0.1 is the per-service
+# default recommended in `.docs/phase-5-scaling.md §7.2`.
+sampling_ratio = 0.1
+
+[logs]
+level = "INFO"
+format = "json"
