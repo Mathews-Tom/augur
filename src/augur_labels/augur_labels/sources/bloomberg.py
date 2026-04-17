@@ -68,9 +68,11 @@ class BloombergAdapter:
         return token
 
     async def _get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
-        token = await self._ensure_token()
-
         async def _call() -> dict[str, Any]:
+            # Re-fetch the token inside the closure so 401-triggered
+            # retries pick up the freshly-issued credential instead of
+            # looping against a stale captured value.
+            token = await self._ensure_token()
             response = await self._client.get(
                 f"{self._base_url}{path}",
                 headers={"Authorization": f"Bearer {token}"},
@@ -78,7 +80,7 @@ class BloombergAdapter:
                 timeout=30.0,
             )
             if response.status_code == 401:
-                # Force re-auth on next call.
+                # Invalidate so the next attempt re-authenticates.
                 self._token = None
                 response.raise_for_status()
             response.raise_for_status()

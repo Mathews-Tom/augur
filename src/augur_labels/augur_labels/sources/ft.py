@@ -8,6 +8,7 @@ reduced metadata.
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Sequence
 from datetime import datetime
@@ -18,6 +19,8 @@ import httpx
 from augur_labels.models import SourcePublication
 from augur_labels.models.source import SourceId
 from augur_labels.sources._http import HttpBackoff, request_with_backoff
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class FtAdapter:
@@ -64,6 +67,10 @@ class FtAdapter:
         keywords: Sequence[str] | None = None,
     ) -> list[SourcePublication]:
         if not self._api_key:
+            _LOGGER.warning(
+                "FT adapter skipped: no FT_API_KEY set — discover will "
+                "proceed with reduced source coverage"
+            )
             return []
         params = {"since": since.isoformat().replace("+00:00", "Z")}
         if keywords:

@@ -22,6 +22,9 @@ class AgreementReport(BaseModel):
     window_start: datetime
     window_end: datetime
     candidate_count: int
+    # Candidates exactly one annotator reviewed; excluded from metrics
+    # but surfaced so consumers know the pairing coverage.
+    unpaired_count: int = 0
     event_existence_kappa: float
     timestamp_agreement_60s: float
     market_association_jaccard_mean: float
