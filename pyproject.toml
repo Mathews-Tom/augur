@@ -32,6 +32,17 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "pre-commit>=3.7",
+    # Distributed-runtime clients and their test doubles. CI unit tests
+    # exercise bus and storage adapters through dependency-injected
+    # fakes; live NATS / Redis / TimescaleDB clusters are only required
+    # for the opt-in integration tests.
+    "fakeredis>=2.23",
+    "nats-py>=2.7",
+    "redis>=5.0",
+    "psycopg[binary]>=3.1",
+    "prometheus-client>=0.20",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
 ]
 
 [tool.ruff]

@@ -1,0 +1,43 @@
+# Message bus configuration.
+#
+# The default backend is "memory" — the single-process InProcessAsyncBus
+# used by the monolith engine. Operators flip to "nats" or "redis" when
+# they deploy the multi-process runtime; see `.docs/phase-5-scaling.md
+# §4` for the decision matrix and operational tradeoffs.
+
+[backend]
+# One of: "memory" | "nats" | "redis".
+kind = "memory"
+# Used by the in-process bus; ignored for nats/redis.
+capacity = 256
+
+[nats]
+servers = ["nats://localhost:4222"]
+# File containing nats credentials. The env var is read at startup;
+# the file path inside the env var is opened by the nats-py client.
+credentials_file_env = "NATS_CREDENTIALS_FILE"
+# JetStream stream name. A single stream carries every augur.* subject.
+stream_name = "augur"
+# JetStream replication factor. Production clusters run at 3; a
+# single-node dev cluster accepts 1.
+replication_factor = 3
+# Subject prefix for every Augur topic. Downstream subjects follow
+# the §4.3 layout: <prefix>.snapshots.<platform>.<market_id>, etc.
+subject_prefix = "augur"
+
+[redis]
+url_env = "REDIS_URL"
+# XADD MAXLEN target per stream. Oldest entries are trimmed past this.
+stream_max_length = 100000
+# Consumer groups are named "<prefix>.<topic>".
+consumer_group_prefix = "augur"
+# XREAD block timeout. The consumer loop unblocks at this cadence
+# so graceful shutdown observes stop signals without delay.
+block_ms = 1000
+
+[lock]
+# Distributed-lock TTL used by active-passive singleton workers.
+# The active holder renews the lock every renew_interval_seconds; if
+# renewal misses three intervals the passive peer takes over.
+ttl_seconds = 30
+renew_interval_seconds = 10
