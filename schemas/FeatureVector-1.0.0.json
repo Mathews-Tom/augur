@@ -1,0 +1,101 @@
+{
+  "additionalProperties": false,
+  "description": "Per-market features at a single computation tick.",
+  "properties": {
+    "bid_ask_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Bid Ask Ratio"
+    },
+    "computed_at": {
+      "format": "date-time",
+      "title": "Computed At",
+      "type": "string"
+    },
+    "market_id": {
+      "title": "Market Id",
+      "type": "string"
+    },
+    "price_momentum_15m": {
+      "title": "Price Momentum 15M",
+      "type": "number"
+    },
+    "price_momentum_1h": {
+      "title": "Price Momentum 1H",
+      "type": "number"
+    },
+    "price_momentum_4h": {
+      "title": "Price Momentum 4H",
+      "type": "number"
+    },
+    "price_momentum_5m": {
+      "title": "Price Momentum 5M",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "spread_pct": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Spread Pct"
+    },
+    "volatility_15m": {
+      "title": "Volatility 15M",
+      "type": "number"
+    },
+    "volatility_1h": {
+      "title": "Volatility 1H",
+      "type": "number"
+    },
+    "volatility_4h": {
+      "title": "Volatility 4H",
+      "type": "number"
+    },
+    "volatility_5m": {
+      "title": "Volatility 5M",
+      "type": "number"
+    },
+    "volume_ratio_1h": {
+      "title": "Volume Ratio 1H",
+      "type": "number"
+    },
+    "volume_ratio_5m": {
+      "title": "Volume Ratio 5M",
+      "type": "number"
+    }
+  },
+  "required": [
+    "market_id",
+    "computed_at",
+    "price_momentum_5m",
+    "price_momentum_15m",
+    "price_momentum_1h",
+    "price_momentum_4h",
+    "volatility_5m",
+    "volatility_15m",
+    "volatility_1h",
+    "volatility_4h",
+    "volume_ratio_5m",
+    "volume_ratio_1h",
+    "bid_ask_ratio",
+    "spread_pct"
+  ],
+  "title": "FeatureVector",
+  "type": "object"
+}
