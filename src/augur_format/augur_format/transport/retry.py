@@ -34,19 +34,27 @@ async def deliver_with_backoff[T](
     factory: Callable[[], Awaitable[T]],
     policy: DeliveryBackoff,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
-) -> T:
-    """Invoke *factory* with exponential backoff."""
+) -> tuple[T, int]:
+    """Invoke *factory* with exponential backoff.
+
+    Returns ``(result, attempts)`` where ``attempts`` is the 1-based
+    count of attempts up to and including the successful call so the
+    caller can surface the actual attempt count in operational
+    telemetry rather than hardcoding policy.max_retries.
+    """
     delay = policy.initial_seconds
     last_error: BaseException | None = None
     for attempt in range(1, policy.max_retries + 1):
         try:
-            return await factory()
+            result = await factory()
         except Exception as err:
             last_error = err
             if attempt == policy.max_retries:
                 break
             await sleep(delay)
             delay = min(delay * 2.0, policy.max_seconds)
+        else:
+            return result, attempt
     if last_error is None:  # pragma: no cover
         raise RuntimeError("delivery retry loop exited without capturing an error")
     raise DeliveryRetryExhaustedError(attempts=policy.max_retries, last_error=last_error)
