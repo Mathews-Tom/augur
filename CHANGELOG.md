@@ -4,6 +4,22 @@ All notable changes to Augur are recorded in this file. Format follows [Keep a C
 
 ## [Unreleased]
 
+### Added — Deterministic Formatters
+
+- `src/augur_format/deterministic/json_feed.py` — `to_canonical_json` emits UTF-8 JSON bytes with stable key ordering (top-level, signal block, related-market block), six-decimal float rounding (configurable), and Z-suffix UTC timestamps. Byte-identical across invocations.
+- `src/augur_format/deterministic/severity.py` — pure `derive_severity` mapping magnitude × confidence against per-liquidity-tier thresholds to `{high, medium, low}`. Formula lives in code so consumers can reproduce locally.
+- `src/augur_format/deterministic/markdown.py` — Jinja2 `MarkdownFormatter` rendering five per-signal-type templates that extend `_base.md.j2`. Templates ship inside the wheel via the hatch `include = ["augur_format/**/*.j2"]` rule.
+- `src/augur_format/validate/` — `ConsumerEnumValidator` rejects briefs whose `actionable_for` contains values outside `ConsumerType`; `load_schema` reads exported JSON schemas from `schemas/` for debug-build validation.
+- `src/augur_format/transport/webhook.py` — `WebhookFormatter` POSTs canonical JSON, wrapped Markdown, or Slack Block Kit payloads to configured destinations with exponential-backoff retry on 5xx/429 and drop on 4xx. Auth headers sourced from env vars at delivery time.
+- `src/augur_format/transport/websocket.py` — `WebSocketBroadcaster` with `SIGNAL`, `HEARTBEAT`, `STORM_START`, `STORM_END` frame types; oldest-drop under full per-connection queues for timeliness under pressure.
+- `src/augur_format/routing/` — `ConsumerRegistry.from_toml` loads `config/consumers.toml` and exposes per-category routing; `SignalRouter` maps `SignalContext` to the consumer set, surfacing suppressed consumers for `llm_assisted` interpretation mode.
+- `src/augur_format/llm/models.py` — `IntelligenceBrief` contract declared in this phase for completeness. The gated LLM formatter in the next phase instantiates the model; the JSON schema ships at `schemas/IntelligenceBrief-1.0.0.json`.
+- `config/formatters.toml` mirrors `phase-3 §12.2` with JSON, Markdown, Webhook, and WebSocket blocks validated against `FormatterConfig`.
+
+### Operational Handoff — Deterministic Formatters
+
+After merge operators can subscribe clients to the WebSocket broadcaster for live signal frames, wire webhook targets (Slack or generic JSON/Markdown) to push brief deliveries, and route signals to consumers via the `ConsumerRegistry` loaded from `config/consumers.toml`. The canonical JSON feed is ready for any consumer that validates against `schemas/SignalContext-1.0.0.json`.
+
 ### Added — Labeling Pipeline
 
 - `src/augur_labels/` package with Pydantic data contracts for `NewsworthyEvent`, `EventCandidate`, `SourcePublication`, `QualifyingSource`, `LabelDecision`, `AnnotatorIdentity`, and `AgreementReport`. The closed `source_id` literal set (reuters, bloomberg, ap, ft) is load-bearing across adapters, storage, and workflow.
