@@ -29,7 +29,8 @@ def test_configure_logging_emits_json(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.unit
-def test_get_logger_returns_usable_logger() -> None:
+def test_get_logger_returns_usable_logger(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sys.stdout", StringIO())
     configure_logging(level="INFO")
     logger = get_logger("any.module")
     assert hasattr(logger, "info")
