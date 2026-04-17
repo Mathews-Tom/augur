@@ -25,6 +25,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from augur_format.llm.models import IntelligenceBrief
 from augur_signals.models import (
     FeatureVector,
     MarketSignal,
@@ -41,6 +42,7 @@ MODELS: list[tuple[type[BaseModel], str]] = [
     (FeatureVector, "1.0.0"),
     (MarketSignal, "1.0.0"),
     (SignalContext, "1.0.0"),
+    (IntelligenceBrief, "1.0.0"),
 ]
 
 

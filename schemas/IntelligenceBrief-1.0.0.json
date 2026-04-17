@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "ConsumerType": {
+      "description": "Registered consumers of the brief feed per docs/contracts/consumer-registry.md.",
+      "enum": [
+        "macro_research_agent",
+        "geopolitical_research_agent",
+        "crypto_research_agent",
+        "financial_news_desk",
+        "regulatory_news_desk",
+        "dashboard"
+      ],
+      "title": "ConsumerType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Gated LLM formatter output contract.\n\n``actionable_for`` is constrained to the ConsumerType registry in\ndocs/contracts/consumer-registry.md via the Pydantic field type;\nthe closed-enum validator rechecks this at the formatter boundary\nso even dynamically-constructed instances fail loud on unknown\nvalues.",
+  "properties": {
+    "actionable_for": {
+      "items": {
+        "$ref": "#/$defs/ConsumerType"
+      },
+      "title": "Actionable For",
+      "type": "array"
+    },
+    "body_markdown": {
+      "title": "Body Markdown",
+      "type": "string"
+    },
+    "brief_id": {
+      "title": "Brief Id",
+      "type": "string"
+    },
+    "forbidden_token_check": {
+      "const": "passed",
+      "default": "passed",
+      "title": "Forbidden Token Check",
+      "type": "string"
+    },
+    "headline": {
+      "title": "Headline",
+      "type": "string"
+    },
+    "interpretation_mode": {
+      "const": "llm_assisted",
+      "default": "llm_assisted",
+      "title": "Interpretation Mode",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "prompt_hash": {
+      "title": "Prompt Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "signal_id": {
+      "title": "Signal Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "brief_id",
+    "signal_id",
+    "headline",
+    "body_markdown",
+    "severity",
+    "model",
+    "prompt_hash"
+  ],
+  "title": "IntelligenceBrief",
+  "type": "object"
+}
