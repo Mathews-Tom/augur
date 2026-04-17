@@ -25,12 +25,23 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from augur_signals.models import (
+    FeatureVector,
+    MarketSignal,
+    MarketSnapshot,
+    SignalContext,
+)
+
 SCHEMAS_DIR = Path(__file__).resolve().parent.parent / "schemas"
 
-# Registered (model_class, schema_version) pairs. Extended as Pydantic
-# models land. Entries here drive both the write path and the
-# --check gate.
-MODELS: list[tuple[type[BaseModel], str]] = []
+# Registered (model_class, schema_version) pairs. Entries drive both
+# the write path and the --check gate.
+MODELS: list[tuple[type[BaseModel], str]] = [
+    (MarketSnapshot, "1.0.0"),
+    (FeatureVector, "1.0.0"),
+    (MarketSignal, "1.0.0"),
+    (SignalContext, "1.0.0"),
+]
 
 
 def schema_path(model_name: str, version: str) -> Path:

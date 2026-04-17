@@ -1,0 +1,266 @@
+{
+  "$defs": {
+    "InterpretationMode": {
+      "description": "How a SignalContext or IntelligenceBrief was produced.",
+      "enum": [
+        "deterministic",
+        "llm_assisted"
+      ],
+      "title": "InterpretationMode",
+      "type": "string"
+    },
+    "ManipulationFlag": {
+      "description": "Signature matches attached to signals by the manipulation detector.",
+      "enum": [
+        "single_counterparty_concentration",
+        "size_vs_depth_outlier",
+        "cancel_replace_burst",
+        "thin_book_during_move",
+        "pre_resolution_window"
+      ],
+      "title": "ManipulationFlag",
+      "type": "string"
+    },
+    "MarketSignal": {
+      "additionalProperties": false,
+      "description": "Canonical structured event emitted by the extraction layer.",
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "detected_at": {
+          "format": "date-time",
+          "title": "Detected At",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            -1,
+            0,
+            1
+          ],
+          "title": "Direction",
+          "type": "integer"
+        },
+        "fdr_adjusted": {
+          "title": "Fdr Adjusted",
+          "type": "boolean"
+        },
+        "liquidity_tier": {
+          "enum": [
+            "high",
+            "mid",
+            "low"
+          ],
+          "title": "Liquidity Tier",
+          "type": "string"
+        },
+        "magnitude": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Magnitude",
+          "type": "number"
+        },
+        "manipulation_flags": {
+          "items": {
+            "$ref": "#/$defs/ManipulationFlag"
+          },
+          "title": "Manipulation Flags",
+          "type": "array"
+        },
+        "market_id": {
+          "title": "Market Id",
+          "type": "string"
+        },
+        "platform": {
+          "enum": [
+            "polymarket",
+            "kalshi"
+          ],
+          "title": "Platform",
+          "type": "string"
+        },
+        "raw_features": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Raw Features",
+          "type": "object"
+        },
+        "related_market_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Market Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "signal_id": {
+          "title": "Signal Id",
+          "type": "string"
+        },
+        "signal_type": {
+          "$ref": "#/$defs/SignalType"
+        },
+        "window_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Window Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "signal_id",
+        "market_id",
+        "platform",
+        "signal_type",
+        "magnitude",
+        "direction",
+        "confidence",
+        "fdr_adjusted",
+        "detected_at",
+        "window_seconds",
+        "liquidity_tier",
+        "raw_features"
+      ],
+      "title": "MarketSignal",
+      "type": "object"
+    },
+    "RelatedMarketState": {
+      "additionalProperties": false,
+      "description": "Snapshot of a related market at context-assembly time.",
+      "properties": {
+        "current_price": {
+          "title": "Current Price",
+          "type": "number"
+        },
+        "delta_24h": {
+          "title": "Delta 24H",
+          "type": "number"
+        },
+        "market_id": {
+          "title": "Market Id",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "relationship_strength": {
+          "title": "Relationship Strength",
+          "type": "number"
+        },
+        "relationship_type": {
+          "enum": [
+            "positive",
+            "inverse",
+            "complex",
+            "causal"
+          ],
+          "title": "Relationship Type",
+          "type": "string"
+        },
+        "volume_24h": {
+          "title": "Volume 24H",
+          "type": "number"
+        }
+      },
+      "required": [
+        "market_id",
+        "question",
+        "current_price",
+        "delta_24h",
+        "volume_24h",
+        "relationship_type",
+        "relationship_strength"
+      ],
+      "title": "RelatedMarketState",
+      "type": "object"
+    },
+    "SignalType": {
+      "description": "Detector signal types produced by the extraction layer.",
+      "enum": [
+        "price_velocity",
+        "volume_spike",
+        "book_imbalance",
+        "cross_market_divergence",
+        "regime_shift"
+      ],
+      "title": "SignalType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Deterministic envelope wrapping a MarketSignal with platform metadata.",
+  "properties": {
+    "closes_at": {
+      "format": "date-time",
+      "title": "Closes At",
+      "type": "string"
+    },
+    "interpretation_mode": {
+      "$ref": "#/$defs/InterpretationMode",
+      "default": "deterministic"
+    },
+    "investigation_prompts": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Investigation Prompts",
+      "type": "array"
+    },
+    "market_question": {
+      "title": "Market Question",
+      "type": "string"
+    },
+    "related_markets": {
+      "items": {
+        "$ref": "#/$defs/RelatedMarketState"
+      },
+      "title": "Related Markets",
+      "type": "array"
+    },
+    "resolution_criteria": {
+      "title": "Resolution Criteria",
+      "type": "string"
+    },
+    "resolution_source": {
+      "title": "Resolution Source",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signal": {
+      "$ref": "#/$defs/MarketSignal"
+    }
+  },
+  "required": [
+    "signal",
+    "market_question",
+    "resolution_criteria",
+    "resolution_source",
+    "closes_at",
+    "related_markets",
+    "investigation_prompts"
+  ],
+  "title": "SignalContext",
+  "type": "object"
+}

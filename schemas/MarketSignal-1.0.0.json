@@ -1,0 +1,145 @@
+{
+  "$defs": {
+    "ManipulationFlag": {
+      "description": "Signature matches attached to signals by the manipulation detector.",
+      "enum": [
+        "single_counterparty_concentration",
+        "size_vs_depth_outlier",
+        "cancel_replace_burst",
+        "thin_book_during_move",
+        "pre_resolution_window"
+      ],
+      "title": "ManipulationFlag",
+      "type": "string"
+    },
+    "SignalType": {
+      "description": "Detector signal types produced by the extraction layer.",
+      "enum": [
+        "price_velocity",
+        "volume_spike",
+        "book_imbalance",
+        "cross_market_divergence",
+        "regime_shift"
+      ],
+      "title": "SignalType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Canonical structured event emitted by the extraction layer.",
+  "properties": {
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "detected_at": {
+      "format": "date-time",
+      "title": "Detected At",
+      "type": "string"
+    },
+    "direction": {
+      "enum": [
+        -1,
+        0,
+        1
+      ],
+      "title": "Direction",
+      "type": "integer"
+    },
+    "fdr_adjusted": {
+      "title": "Fdr Adjusted",
+      "type": "boolean"
+    },
+    "liquidity_tier": {
+      "enum": [
+        "high",
+        "mid",
+        "low"
+      ],
+      "title": "Liquidity Tier",
+      "type": "string"
+    },
+    "magnitude": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Magnitude",
+      "type": "number"
+    },
+    "manipulation_flags": {
+      "items": {
+        "$ref": "#/$defs/ManipulationFlag"
+      },
+      "title": "Manipulation Flags",
+      "type": "array"
+    },
+    "market_id": {
+      "title": "Market Id",
+      "type": "string"
+    },
+    "platform": {
+      "enum": [
+        "polymarket",
+        "kalshi"
+      ],
+      "title": "Platform",
+      "type": "string"
+    },
+    "raw_features": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "title": "Raw Features",
+      "type": "object"
+    },
+    "related_market_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Market Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signal_id": {
+      "title": "Signal Id",
+      "type": "string"
+    },
+    "signal_type": {
+      "$ref": "#/$defs/SignalType"
+    },
+    "window_seconds": {
+      "exclusiveMinimum": 0,
+      "title": "Window Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "signal_id",
+    "market_id",
+    "platform",
+    "signal_type",
+    "magnitude",
+    "direction",
+    "confidence",
+    "fdr_adjusted",
+    "detected_at",
+    "window_seconds",
+    "liquidity_tier",
+    "raw_features"
+  ],
+  "title": "MarketSignal",
+  "type": "object"
+}

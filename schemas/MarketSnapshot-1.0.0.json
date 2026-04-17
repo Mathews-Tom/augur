@@ -1,0 +1,139 @@
+{
+  "additionalProperties": false,
+  "description": "A normalized, platform-agnostic market-state observation.",
+  "properties": {
+    "ask": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ask"
+    },
+    "bid": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Bid"
+    },
+    "closes_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Closes At"
+    },
+    "last_price": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Last Price",
+      "type": "number"
+    },
+    "liquidity": {
+      "minimum": 0.0,
+      "title": "Liquidity",
+      "type": "number"
+    },
+    "market_id": {
+      "title": "Market Id",
+      "type": "string"
+    },
+    "platform": {
+      "enum": [
+        "polymarket",
+        "kalshi"
+      ],
+      "title": "Platform",
+      "type": "string"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "raw_json": {
+      "additionalProperties": true,
+      "title": "Raw Json",
+      "type": "object"
+    },
+    "resolution_criteria": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resolution Criteria"
+    },
+    "resolution_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resolution Source"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "spread": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Spread"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "volume_24h": {
+      "minimum": 0.0,
+      "title": "Volume 24H",
+      "type": "number"
+    }
+  },
+  "required": [
+    "market_id",
+    "platform",
+    "timestamp",
+    "last_price",
+    "bid",
+    "ask",
+    "spread",
+    "volume_24h",
+    "liquidity",
+    "question",
+    "resolution_source",
+    "resolution_criteria",
+    "closes_at",
+    "raw_json"
+  ],
+  "title": "MarketSnapshot",
+  "type": "object"
+}
