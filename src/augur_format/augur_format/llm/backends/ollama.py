@@ -80,7 +80,13 @@ class OllamaBackend(AbstractLLMBackend):
                 last_error = err
                 continue
             if response.status_code != 200:
-                last_error = BackendError(f"ollama returned status {response.status_code}")
+                status_error = BackendError(f"ollama returned status {response.status_code}")
+                # 4xx indicates a malformed request from the adapter;
+                # retrying will not recover. Surface the error
+                # immediately so callers see the root cause.
+                if 400 <= response.status_code < 500:
+                    raise status_error
+                last_error = status_error
                 continue
             data: dict[str, Any] = response.json()
             duration_ms = int((time.perf_counter() - started) * 1000)

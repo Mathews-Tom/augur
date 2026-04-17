@@ -15,9 +15,10 @@ from augur_format.llm.backends.base import (
 )
 from augur_format.llm.interpreter import LLMInterpreter
 from augur_format.llm.linter.forbidden_tokens import ForbiddenTokenLinter
-from augur_format.llm.linter.schema_check import SchemaValidator
 from augur_format.llm.prompts.builder import PromptBuilder
+from augur_format.llm.routing.consumer_gate import ConsumerGate
 from augur_signals.models import (
+    ConsumerType,
     InterpretationMode,
     MarketSignal,
     SignalContext,
@@ -96,12 +97,14 @@ _VALID_RESPONSE = json.dumps(
 def _interpreter(
     backend: _StubBackend,
     forbidden: list[str] | None = None,
+    *,
+    gate: ConsumerGate | None = None,
 ) -> LLMInterpreter:
     return LLMInterpreter(
         backend,
         PromptBuilder(forbidden or FORBIDDEN),
         ForbiddenTokenLinter(forbidden or FORBIDDEN),
-        SchemaValidator(),
+        consumer_gate=gate,
     )
 
 
@@ -193,6 +196,57 @@ async def test_resuming_from_suspension_allows_next_brief() -> None:
         now=datetime(2026, 3, 15, 12, 5, tzinfo=UTC),
     )
     assert brief is not None
+
+
+@pytest.mark.asyncio
+async def test_gate_trims_actionable_for_to_opted_in_consumers() -> None:
+    # LLM emits macro_research_agent + dashboard; only dashboard opts in.
+    response = json.dumps(
+        {
+            "headline": "Fed holds rates",
+            "body_markdown": "Update.",
+            "actionable_for": ["macro_research_agent", "dashboard"],
+        }
+    )
+    backend = _StubBackend(_responses=[response])
+    interpreter = _interpreter(backend, gate=ConsumerGate([ConsumerType.DASHBOARD]))
+    brief = await interpreter.interpret(
+        _context(),
+        severity="high",
+        now=datetime(2026, 3, 15, 12, 5, tzinfo=UTC),
+    )
+    assert brief is not None
+    assert brief.actionable_for == [ConsumerType.DASHBOARD]
+
+
+@pytest.mark.asyncio
+async def test_gate_drops_brief_when_no_consumer_opted_in() -> None:
+    response = json.dumps(
+        {
+            "headline": "Fed holds rates",
+            "body_markdown": "Update.",
+            "actionable_for": ["macro_research_agent"],
+        }
+    )
+    backend = _StubBackend(_responses=[response])
+    interpreter = _interpreter(backend, gate=ConsumerGate([ConsumerType.DASHBOARD]))
+    brief = await interpreter.interpret(_context(), severity="medium")
+    assert brief is None
+
+
+@pytest.mark.asyncio
+async def test_unicode_escape_in_raw_json_still_caught_after_parse() -> None:
+    # "\u006d\u0061\u0079 be driven by" decodes to "may be driven by"; the
+    # substring lint against the raw JSON would miss, but the post-parse
+    # lint against the decoded headline catches it.
+    tainted = (
+        '{"headline":"\\u006d\\u0061\\u0079 be driven by moves",'
+        '"body_markdown":"ok","actionable_for":["dashboard"]}'
+    )
+    backend = _StubBackend(_responses=[tainted])
+    interpreter = _interpreter(backend)
+    brief = await interpreter.interpret(_context(), severity="medium")
+    assert brief is None
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from augur_signals.models import ConsumerType
 
+SCHEMA_VERSION: Literal["1.0.0"] = "1.0.0"
+
 
 class IntelligenceBrief(BaseModel):
     """Gated LLM formatter output contract.
@@ -44,7 +46,7 @@ class IntelligenceBrief(BaseModel):
     formatter_version: str
     generated_at: datetime
     forbidden_token_check: Literal["passed"] = "passed"  # noqa: S105
-    schema_version: Literal["1.0.0"] = "1.0.0"
+    schema_version: Literal["1.0.0"] = SCHEMA_VERSION
 
     @model_validator(mode="after")
     def _interpretation_mode_pinned(self) -> IntelligenceBrief:
