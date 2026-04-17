@@ -24,9 +24,9 @@ class IntelligenceBrief(BaseModel):
     Structural invariants are enforced by Pydantic at construction:
     the headline is capped at 90 characters so it fits a Slack header,
     body_markdown is capped at 800 characters so it stays readable on
-    a dashboard card, ``actionable_for`` is typed as list[ConsumerType]
-    so unknown consumers fail immediately, and ``interpretation_mode``
-    plus ``forbidden_token_check`` are Literal singletons — any
+    a dashboard card, `actionable_for` is typed as list[ConsumerType]
+    so unknown consumers fail immediately, and `interpretation_mode`
+    plus `forbidden_token_check` are Literal singletons — any
     construction path that bypasses the linter or the deterministic-
     mode check would have to forge the literal, which is caught in
     code review.

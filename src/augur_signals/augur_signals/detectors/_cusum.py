@@ -1,8 +1,8 @@
 """Two-sided CUSUM for detecting sustained shifts in a running mean.
 
 Standard formulation: maintain positive and negative cumulative sums,
-reset when they cross a control threshold ``h * sigma``. ``k`` is the
-allowable slack below which no accumulation happens; together ``(k, h)``
+reset when they cross a control threshold `h * sigma`. `k` is the
+allowable slack below which no accumulation happens; together `(k, h)`
 trade off detection speed against false-positive rate.
 """
 

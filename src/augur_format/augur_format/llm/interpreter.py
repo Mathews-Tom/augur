@@ -2,7 +2,7 @@
 
 Composes the backend, prompt builder, forbidden-token linter, schema
 validator, consumer gate, and provenance stamp into a single
-``interpret`` call per SignalContext. Any failure (backend error,
+`interpret` call per SignalContext. Any failure (backend error,
 forbidden token, invalid JSON, schema violation, storm suspension)
 returns None; the deterministic pipeline proceeds unaffected.
 
@@ -62,7 +62,7 @@ class LLMInterpreter:
     def set_suspended(self, suspended: bool) -> None:
         """Toggle storm-mode suspension.
 
-        When True, ``interpret`` returns None without calling the
+        When True, `interpret` returns None without calling the
         backend, matching phase-4 §11 coordination with the dedup
         layer's StormController.
         """

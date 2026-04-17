@@ -1,7 +1,7 @@
-"""AST-based guard against ``datetime.now()`` inside detector modules.
+"""AST-based guard against `datetime.now()` inside detector modules.
 
 The development-plan invariant (§7.2) states that detectors must take
-``now`` as a parameter; any call to ``datetime.now()`` from within a
+`now` as a parameter; any call to `datetime.now()` from within a
 detector module breaks backtest replay determinism. This script walks
 the detector package and fails non-zero on any direct call.
 

@@ -51,7 +51,7 @@ class SignalRouter:
         """Return the consumer set for *context*.
 
         Consumers whose subscription excludes the context's
-        interpretation_mode are reported under ``suppressed`` so
+        interpretation_mode are reported under `suppressed` so
         operational metrics can count the drops.
         """
         category = self._market_categories.get(context.signal.market_id, "default")

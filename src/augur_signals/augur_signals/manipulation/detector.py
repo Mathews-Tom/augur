@@ -72,7 +72,7 @@ class ManipulationDetector:
 def attach_flags(signal: MarketSignal, flags: list[ManipulationFlag]) -> MarketSignal:
     """Return a new MarketSignal with *flags* attached.
 
-    MarketSignal is frozen; the update must go through ``model_copy``
+    MarketSignal is frozen; the update must go through `model_copy`
     so Pydantic re-runs the calibration_provenance validator on the
     result.
     """

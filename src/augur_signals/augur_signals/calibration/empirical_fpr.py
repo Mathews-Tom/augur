@@ -47,10 +47,10 @@ def compute_empirical_fpr(
 ) -> FPRRecord:
     """FP / (FP + TN) per docs/methodology/labeling-protocol.md §True Positive.
 
-    A detector firing at ``t_signal`` is a true positive if some labeled
-    event for the same market occurred in ``[t_signal, t_signal + lead_window]``.
+    A detector firing at `t_signal` is a true positive if some labeled
+    event for the same market occurred in `[t_signal, t_signal + lead_window]`.
     All other firings are false positives; every observation window
-    without a label in range contributes to the TN denominator. ``now``
+    without a label in range contributes to the TN denominator. `now`
     is a required parameter so every FPRRecord's computed_at is
     deterministic across backtest replays — matching the pipeline-wide
     "now as a parameter" invariant.

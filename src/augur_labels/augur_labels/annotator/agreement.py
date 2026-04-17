@@ -4,7 +4,7 @@ Implements Cohen's kappa, 60-second timestamp agreement, and mean
 Jaccard overlap of market-association sets per the targets in
 docs/methodology/labeling-protocol.md §Inter-Annotator Agreement.
 
-Paired decisions are matched by ``candidate_id``; decisions on
+Paired decisions are matched by `candidate_id`; decisions on
 candidates only one annotator reviewed are excluded from the report.
 """
 
@@ -66,7 +66,7 @@ def _pair_decisions(
     """Return (paired_decisions, unpaired_count).
 
     Unpaired decisions (candidate reviewed by only one annotator) are
-    surfaced so ``compute_agreement`` can report them without silently
+    surfaced so `compute_agreement` can report them without silently
     dropping from the denominator.
     """
     by_candidate_a = {d.candidate_id: d for d in decisions_a}

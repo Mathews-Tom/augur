@@ -1,14 +1,14 @@
 """Defense-in-depth: assert LLM packages are not importable by default.
 
 The grep-based LLM-import guard catches source-level imports in
-``src/augur_signals/``. This test catches the runtime case where a
-dependency change or a stray ``uv sync --extra`` pulls an LLM SDK into
-the default environment, which would make an accidental ``import
-anthropic`` in extraction code silently succeed.
+`src/augur_signals/`. This test catches the runtime case where a
+dependency change or a stray `uv sync --extra` pulls an LLM SDK into
+the default environment, which would make an accidental `import
+anthropic` in extraction code silently succeed.
 
 The tested invariant: in the default workspace sync (no optional
 extras), none of the LLM SDK packages used anywhere in the project
-tree should be importable by the ``augur_signals`` interpreter.
+tree should be importable by the `augur_signals` interpreter.
 """
 
 from __future__ import annotations

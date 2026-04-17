@@ -53,7 +53,7 @@ async def with_backoff[T](
         The factory's eventual return value.
 
     Raises:
-        RetryExhaustedError: Every attempt up to ``policy.max_retries``
+        RetryExhaustedError: Every attempt up to `policy.max_retries`
             has failed. The last exception is attached.
     """
     delay = policy.initial_seconds

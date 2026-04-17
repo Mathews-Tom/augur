@@ -1,7 +1,7 @@
 """Consumer gate enforcing opt-in for llm_assisted briefs.
 
 Per docs/contracts/consumer-registry.md, only consumers whose
-configuration sets ``accepts_llm_assisted = true`` receive LLM-
+configuration sets `accepts_llm_assisted = true` receive LLM-
 rendered briefs. The deterministic JSON and Markdown briefs from
 Phase 3 still reach every consumer; the gate only filters the LLM
 output.

@@ -6,14 +6,14 @@ Usage:
 
 The command is intentionally narrow: it serializes every registered
 Pydantic model to a deterministic JSON document at
-``schemas/<ModelName>-<version>.json``. ``--check`` compares the on-disk
+schemas/<ModelName>-<version>.json. --check compares the on-disk
 snapshot byte-for-byte against the model's current schema and exits
 non-zero on drift; this is the CI gate that enforces schema-contract
 discipline per docs/contracts/schema-and-versioning.md.
 
 The model registry below is empty while the Pydantic models live in
 future commits. Each model is registered by importing it here and
-appending ``(ModelClass, "1.0.0")`` to ``MODELS``.
+appending (ModelClass, "1.0.0") to MODELS.
 """
 
 from __future__ import annotations
@@ -66,8 +66,8 @@ def export_schema(model_cls: type[BaseModel], version: str) -> None:
 def check_schema(model_cls: type[BaseModel], version: str) -> tuple[bool, bool]:
     """Compare on-disk schema to the current model.
 
-    Returns a ``(exists, matches)`` pair. ``exists`` is False when the
-    schema file is missing on disk; ``matches`` is True only when the
+    Returns a (exists, matches) pair. exists is False when the
+    schema file is missing on disk; matches is True only when the
     file exists and its contents are byte-for-byte identical to the
     serialized model. The split lets the caller distinguish a missing
     file from a content drift and report them separately.

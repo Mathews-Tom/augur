@@ -13,7 +13,7 @@ from augur_labels.models import EventCandidate, LabelDecision
 
 
 class CandidateQueue:
-    """In-memory candidate store indexed by ``candidate_id``."""
+    """In-memory candidate store indexed by `candidate_id`."""
 
     def __init__(self) -> None:
         self._candidates: dict[str, EventCandidate] = {}

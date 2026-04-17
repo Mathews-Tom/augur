@@ -15,7 +15,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Gated LLM formatter output contract.\n\nStructural invariants are enforced by Pydantic at construction:\nthe headline is capped at 90 characters so it fits a Slack header,\nbody_markdown is capped at 800 characters so it stays readable on\na dashboard card, ``actionable_for`` is typed as list[ConsumerType]\nso unknown consumers fail immediately, and ``interpretation_mode``\nplus ``forbidden_token_check`` are Literal singletons \u2014 any\nconstruction path that bypasses the linter or the deterministic-\nmode check would have to forge the literal, which is caught in\ncode review.",
+  "description": "Gated LLM formatter output contract.\n\nStructural invariants are enforced by Pydantic at construction:\nthe headline is capped at 90 characters so it fits a Slack header,\nbody_markdown is capped at 800 characters so it stays readable on\na dashboard card, `actionable_for` is typed as list[ConsumerType]\nso unknown consumers fail immediately, and `interpretation_mode`\nplus `forbidden_token_check` are Literal singletons \u2014 any\nconstruction path that bypasses the linter or the deterministic-\nmode check would have to forge the literal, which is caught in\ncode review.",
   "properties": {
     "actionable_for": {
       "items": {

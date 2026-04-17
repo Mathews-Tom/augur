@@ -1,8 +1,8 @@
 """Ollama backend adapter.
 
 Uses plain httpx against the local Ollama daemon (default
-``http://localhost:11434``) so the adapter has no hard dependency on
-the ``ollama`` Python client. The adapter retries twice on connection
+`http://localhost:11434`) so the adapter has no hard dependency on
+the `ollama` Python client. The adapter retries twice on connection
 failures; local daemon outages should surface quickly, not retry for
 a minute.
 """

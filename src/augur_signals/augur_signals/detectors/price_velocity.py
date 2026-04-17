@@ -7,7 +7,7 @@ BetaBinomialBOCPD and a cooldown timer so the same underlying change
 does not fire repeatedly.
 
 The pre-resolution exclusion (6 h before market close) is enforced
-inside ``ingest`` so a signal in the window is never returned,
+inside `ingest` so a signal in the window is never returned,
 regardless of the posterior probability.
 """
 

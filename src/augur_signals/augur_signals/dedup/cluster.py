@@ -27,7 +27,7 @@ class TaxonomyEdgesProvider:
         self._edges = dict(edges)
 
     def related(self, market_id: str) -> list[tuple[str, str]]:
-        """Return the list of ``(other_market_id, relationship_type)`` edges."""
+        """Return the list of `(other_market_id, relationship_type)` edges."""
         return list(self._edges.get(market_id, []))
 
 

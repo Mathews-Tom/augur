@@ -1,9 +1,9 @@
 """Provenance stamping for LLM-generated briefs.
 
-``stamp`` returns a ProvenanceStamp whose ``prompt_hash`` is the
-SHA-256 of ``system + "\\n\\n" + user``. Auditors recompute the hash
+`stamp` returns a ProvenanceStamp whose `prompt_hash` is the
+SHA-256 of `system + "\\n\\n" + user`. Auditors recompute the hash
 from the deterministic prompt builder to confirm the model saw
-exactly what the record claims; ``formatter_version`` is read from
+exactly what the record claims; `formatter_version` is read from
 the installed package metadata so downgrades / upgrades are visible
 in the record.
 """

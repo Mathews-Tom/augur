@@ -24,7 +24,7 @@ class AnnotatorIdentity(BaseModel):
 class LabelDecision(BaseModel):
     """One annotator's call on one candidate.
 
-    Fields marked ``required if qualifies`` are enforced by a
+    Fields marked `required if qualifies` are enforced by a
     model_validator on promotion rather than at construction so an
     annotator can record "does not qualify" decisions without supplying
     event metadata.

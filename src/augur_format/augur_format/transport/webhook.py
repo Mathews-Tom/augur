@@ -38,7 +38,7 @@ class WebhookTarget(BaseModel):
     Consumer-type gating and LLM-assisted opt-in live on the
     SignalRouter and the LLM formatter gate respectively; neither
     belongs on the delivery target, where there is no call site.
-    Phase-4 re-introduces ``accepts_llm_assisted`` when the gated
+    Phase-4 re-introduces `accepts_llm_assisted` when the gated
     formatter needs per-target opt-in.
     """
 

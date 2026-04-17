@@ -2,7 +2,7 @@
 
 Runs in debug builds and integration tests; production skips schema
 validation for throughput per the pattern in phase-3 §8.2. The
-validator reads exported JSON schemas from ``schemas/`` so producers
+validator reads exported JSON schemas from `schemas/` so producers
 and consumers share the same contract snapshot.
 """
 
@@ -23,7 +23,7 @@ def load_schema(
     version: str,
     root: Path | None = None,
 ) -> dict[str, object]:
-    """Load ``schemas/<ModelName>-<version>.json``.
+    """Load `schemas/<ModelName>-<version>.json`.
 
     Missing schemas raise SchemaNotFoundError rather than returning a
     permissive empty dict; a missing schema indicates the export step

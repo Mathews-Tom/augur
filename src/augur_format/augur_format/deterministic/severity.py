@@ -1,6 +1,6 @@
 """Deterministic severity derivation.
 
-Severity is ``magnitude * confidence`` scored against per-tier
+Severity is `magnitude * confidence` scored against per-tier
 thresholds. The formula is pure code (not configuration) so every
 consumer can reproduce the mapping locally without a network round
 trip. Changing the thresholds requires a schema-version bump on the
@@ -31,7 +31,7 @@ Severity = Literal["high", "medium", "low"]
 def derive_severity(signal: MarketSignal) -> Severity:
     """Return the deterministic severity label for *signal*.
 
-    The score is ``magnitude * confidence`` (both in [0, 1]); the
+    The score is `magnitude * confidence` (both in [0, 1]); the
     threshold applied depends on the liquidity tier. Low-tier markets
     always emit "low" severity — the sample size on low-tier reliability
     curves is too thin to justify higher confidence in a human channel.

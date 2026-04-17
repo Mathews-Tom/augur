@@ -1,7 +1,7 @@
 """Jinja2 Markdown renderer.
 
-Templates live alongside this module at ``templates/``; one per
-signal type plus a shared ``_base.md.j2``. The renderer is
+Templates live alongside this module at `templates/`; one per
+signal type plus a shared `_base.md.j2`. The renderer is
 deterministic given identical inputs and template files. The
 templates are committed, so any rendering drift surfaces as a test
 failure rather than silent variation.

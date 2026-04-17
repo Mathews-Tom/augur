@@ -5,7 +5,7 @@ manipulation detector -> dedup -> bus -> context assembler. The
 orchestrator is single-process; the multi-process runtime swaps the
 bus and storage adapters without touching this module.
 
-``now`` threads through every downstream call as a parameter so the
+`now` threads through every downstream call as a parameter so the
 backtest harness and the live engine traverse the same code with
 deterministic timing.
 """

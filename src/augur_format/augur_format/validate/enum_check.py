@@ -1,7 +1,7 @@
 """Closed-enum validators for the formatter boundary.
 
 Briefs emitted by any formatter (deterministic today, LLM in the
-gated secondary layer) carry an ``actionable_for`` list that must
+gated secondary layer) carry an `actionable_for` list that must
 contain only values from the ConsumerType registry in
 docs/contracts/consumer-registry.md. Validation runs at the formatter
 boundary; briefs with unknown values are dropped loudly, never
@@ -38,7 +38,7 @@ def validate_consumer_types(values: Sequence[str]) -> list[str]:
 class ConsumerEnumValidator:
     """Validator callable used at the formatter boundary.
 
-    The ``strict`` parameter is retained for the secondary LLM
+    The `strict` parameter is retained for the secondary LLM
     formatter, which may want to downgrade to a warning-and-drop
     during backfill; production deterministic output always runs in
     strict mode.
@@ -52,7 +52,7 @@ class ConsumerEnumValidator:
         return self._strict
 
     def validate_actionable_for(self, values: Sequence[str]) -> ValidationResult:
-        """Check an ``actionable_for`` list against the ConsumerType registry."""
+        """Check an `actionable_for` list against the ConsumerType registry."""
         offending = validate_consumer_types(values)
         return ValidationResult(valid=not offending, offending_values=offending)
 
