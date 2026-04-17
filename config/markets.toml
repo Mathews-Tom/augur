@@ -1,0 +1,19 @@
+# Watchlist of markets tracked by the ingestion layer. Each market
+# declares platform identity, a taxonomy category that keys the
+# investigation-prompt library, and an initial polling priority.
+#
+# Schema is documented in docs/architecture/system-design.md
+# §config/markets.toml. Category must match a category in
+# docs/contracts/consumer-registry.md §Routing; markets with unknown
+# categories fall through to dashboard-only routing.
+#
+# A single example entry is present so the loader validates end-to-end.
+# Replace with the operational watchlist before running live.
+
+[[markets]]
+id = "example_market_placeholder"
+platform = "kalshi"
+platform_market_id = "EXAMPLE-PLACEHOLDER"
+category = "monetary_policy"
+active = false
+poll_priority = "normal"

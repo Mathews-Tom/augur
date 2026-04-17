@@ -1,0 +1,25 @@
+# Deduplication and storm-handling parameters. Matches the configuration
+# block in docs/architecture/deduplication-and-storms.md §Configuration
+# verbatim. Values below are the documented defaults; the dedup layer
+# and bus consume this file at startup.
+
+[dedup]
+fingerprint_bucket_seconds = 30
+cluster_window_seconds = 90
+cluster_relationship_types = ["positive", "inverse", "causal"]
+
+[dedup.bus]
+queue_capacity = 256
+per_consumer_buffer = 64
+context_assembler_concurrency = 4
+llm_formatter_concurrency = 1
+
+[dedup.storm]
+trigger_signal_rate_per_sec = 20
+trigger_signal_rate_window_sec = 30
+trigger_queue_depth_pct = 0.75
+trigger_queue_depth_window_sec = 10
+recovery_signal_rate_per_sec = 5
+recovery_signal_rate_window_sec = 60
+recovery_queue_depth_pct = 0.25
+recovery_queue_depth_window_sec = 30

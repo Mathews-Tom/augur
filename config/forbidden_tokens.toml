@@ -1,0 +1,41 @@
+# Forbidden-token vocabulary for the LLM secondary formatter. The LLM
+# brief is rejected before emission if its headline or body contains any
+# of these phrases, case-insensitive, as a whole-word substring.
+#
+# The categories intentionally target causal-narrative phrases, implicit
+# price projection, and manipulation-adjacent speculation. The character
+# sequences are listed authoritatively here; docs/methodology/
+# calibration-methodology.md describes the categories by intent without
+# enumerating the strings.
+#
+# This file seeds the canonical starter list; tune against the labeled
+# corpus once it accumulates.
+
+[causal_narrative]
+phrases = [
+    "may be driven by",
+    "consistent with new information",
+    "potentially indicates",
+    "likely reflects",
+    "suggests that",
+    "appears to be caused by",
+    "indicates that the market",
+]
+
+[price_projection]
+phrases = [
+    "price will",
+    "expect the price to",
+    "likely to resolve",
+    "probability of resolution",
+    "will resolve yes",
+    "will resolve no",
+]
+
+[manipulation_speculation]
+phrases = [
+    "is being manipulated",
+    "market manipulation by",
+    "coordinated activity by",
+    "evidence of collusion",
+]

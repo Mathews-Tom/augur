@@ -1,0 +1,35 @@
+# Per-detector parameters. Pre-calibration thresholds only; calibrated
+# decision boundaries live in the reliability curves produced by the
+# calibration layer at runtime.
+#
+# Parameter semantics are authoritative in
+# docs/methodology/calibration-methodology.md. Values below mirror the
+# defaults listed in docs/architecture/system-design.md §Layer 3 table;
+# tune against the historical corpus before live deployment.
+
+[price_velocity]
+hazard = 0.004            # 1/250
+fire_probability_threshold = 0.7
+resolution_exclusion_hours = 6
+
+[volume_spike]
+ewma_alpha = 0.05
+target_fdr_q = 0.05
+
+[book_imbalance]
+top_levels = 5
+bullish_threshold = 0.72
+bearish_threshold = 0.28
+persist_snapshots = 3
+min_total_depth_usd = 5000.0
+
+[cross_market_divergence]
+window_hours = 4
+min_historical_correlation = 0.6
+activity_floor_volume_ratio = 1.0
+
+[regime_shift]
+target_alpha = 0.02
+k_sigma = 0.5
+h_sigma = 4.0
+min_dormancy_hours = 6

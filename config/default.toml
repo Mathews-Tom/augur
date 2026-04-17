@@ -1,0 +1,17 @@
+# Engine-wide defaults. Loaded first at startup; validated against a
+# Pydantic model in augur_signals. Placeholder values pending
+# operational tuning.
+#
+# See docs/architecture/system-design.md §Configuration for the full
+# parameter surface and docs/architecture/adaptive-polling-spec.md for
+# the polling defaults.
+
+[engine]
+bus_capacity = 1024
+storage_path = "data/augur.duckdb"
+log_level = "INFO"
+
+[retry]
+max_attempts = 5
+initial_backoff_seconds = 1.0
+max_backoff_seconds = 30.0
