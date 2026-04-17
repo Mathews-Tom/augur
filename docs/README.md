@@ -29,15 +29,16 @@ Read these before writing or modifying any code:
 
 1. `contracts/schema-and-versioning.md` — every data contract
 2. `contracts/consumer-registry.md` — closed `ConsumerType` enum
-3. `methodology/calibration-methodology.md` — confidence pipeline
-4. `methodology/labeling-protocol.md` — ground-truth definition
-5. `methodology/manipulation-taxonomy.md` — manipulation signatures
-6. `architecture/system-design.md` — layer-by-layer architecture (includes Deployment Modes)
-7. `architecture/adaptive-polling-spec.md` — polling state machine
-8. `architecture/deduplication-and-storms.md` — signal merge algorithm
-9. `architecture/storage-and-scaling.md` — storage architecture and migration triggers
-10. `operations/distributed-runbook.md` — cutover, rollback, failover procedures
-11. `operations/manual-testing.md` — runnable surfaces and local smoke stack
+3. `contracts/cross-package-compatibility.md` — cross-package version and schema gates
+4. `methodology/calibration-methodology.md` — confidence pipeline
+5. `methodology/labeling-protocol.md` — ground-truth definition
+6. `methodology/manipulation-taxonomy.md` — manipulation signatures
+7. `architecture/system-design.md` — layer-by-layer architecture (includes Deployment Modes)
+8. `architecture/adaptive-polling-spec.md` — polling state machine
+9. `architecture/deduplication-and-storms.md` — signal merge algorithm
+10. `architecture/storage-and-scaling.md` — storage architecture and migration triggers
+11. `operations/distributed-runbook.md` — cutover, rollback, failover procedures
+12. `operations/manual-testing.md` — runnable surfaces and local smoke stack
 
 ## Group Index
 
