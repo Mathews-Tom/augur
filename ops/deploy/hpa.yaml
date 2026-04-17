@@ -1,63 +1,11 @@
-# HorizontalPodAutoscalers for the stateless worker deployments.
-#
-# Scale on CPU utilization for simple workloads and on a custom
-# bus-consume-lag metric (see observability stack) for the
-# shard-sensitive feature/detector workers. Singletons do NOT
-# autoscale — their replica count is fixed at 2 (active + passive).
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: augur-feature
-  namespace: augur
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: augur-feature
-  minReplicas: 2
-  maxReplicas: 4
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Pods
-      pods:
-        metric:
-          name: augur_bus_consume_lag_seconds
-        target:
-          type: AverageValue
-          averageValue: "3"
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: augur-detector
-  namespace: augur
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: augur-detector
-  minReplicas: 2
-  maxReplicas: 4
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Pods
-      pods:
-        metric:
-          name: augur_bus_consume_lag_seconds
-        target:
-          type: AverageValue
-          averageValue: "3"
+# HorizontalPodAutoscaler only for stateless workers whose shard key
+# is irrelevant. feature/detector workers shard by market_id modulo
+# replica_count; dynamic scaling would silently drop or duplicate
+# shards because the shard mod changes per replica-count change. To
+# resize those pools the operator edits the Deployment `replicas`
+# directly and restarts pods so the new REPLICA_COUNT propagates.
+# Singletons do NOT autoscale — their replica count is pinned at 2
+# (active + passive).
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

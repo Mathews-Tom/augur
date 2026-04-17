@@ -204,13 +204,25 @@ class TimescaleDBStore:
                 )
                 if spec.compress_after_days > 0:
                     if spec.segment_by:
-                        await cur.execute(
+                        # timescaledb.compress_segmentby takes a
+                        # column-list identifier, not a quoted string;
+                        # validate every column against the SQL-ident
+                        # allowlist then inline the list literally.
+                        segment_columns = [
+                            self._quote_ident(col.strip())
+                            for col in spec.segment_by.split(",")
+                            if col.strip()
+                        ]
+                        segment_list = ", ".join(segment_columns)
+                        # segment_list is built from validated idents
+                        # so the dynamic SQL is safe despite S608.
+                        alter_sql = (
                             "ALTER TABLE "
                             + self._quote_ident(spec.table)
                             + " SET (timescaledb.compress, "
-                            "timescaledb.compress_segmentby = %s)",
-                            [spec.segment_by],
+                            + f"timescaledb.compress_segmentby = '{segment_list}')"
                         )
+                        await cur.execute(alter_sql)
                     await cur.execute(
                         """
                         SELECT add_compression_policy(
@@ -230,13 +242,19 @@ class TimescaleDBStore:
                         """,
                         [spec.table, spec.retention_days],
                     )
+            # Record the migration timestamp once. ON CONFLICT DO
+            # NOTHING preserves the original applied_at so the row
+            # remains a migration audit record rather than a last-
+            # boot marker — matching DuckDB's INSERT OR IGNORE.
             await cur.execute(
                 """
                 INSERT INTO schema_version (version, applied_at)
-                VALUES (%s, now())
-                ON CONFLICT (version) DO NOTHING
+                SELECT %s, now()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM schema_version WHERE version = %s
+                )
                 """,
-                [self.CURRENT_SCHEMA_VERSION],
+                [self.CURRENT_SCHEMA_VERSION, self.CURRENT_SCHEMA_VERSION],
             )
         await self._conn.commit()
 

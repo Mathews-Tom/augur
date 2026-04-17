@@ -149,43 +149,69 @@ def _count_parquet_rows(partition: Path) -> int:
     return total
 
 
+# Allowlist of snapshot columns the backfill is permitted to write.
+# Parquet files with any other column are rejected so a corrupt or
+# adversarial partition cannot inject identifiers into the dynamic SQL.
+_ALLOWED_SNAPSHOT_COLUMNS: frozenset[str] = frozenset(
+    {
+        "market_id",
+        "platform",
+        "timestamp",
+        "last_price",
+        "bid",
+        "ask",
+        "spread",
+        "volume_24h",
+        "liquidity",
+        "question",
+        "resolution_source",
+        "resolution_criteria",
+        "closes_at",
+        "raw_json",
+        "schema_version",
+    }
+)
+
+
 async def _copy_partition_into_timescale(
     conn: AsyncConnection[object], partition: Path, batch_size: int
 ) -> int:
-    """COPY *partition* into the snapshots hypertable; return rows inserted.
+    """COPY *partition* into the snapshots hypertable; return rows actually inserted.
 
-    The implementation relies on the operator-supplied DSN pointing at
-    a TimescaleDB hypertable that already exists (via
-    `TimescaleDBStore.initialize`). The script does not create
-    schemas — cutover sequencing is operator-driven.
+    Returns the inserted count from `cur.rowcount` rather than the
+    number of rows attempted, so ON CONFLICT drops (duplicates on
+    re-run) are distinguishable from successful new inserts and the
+    parity check in `backfill` catches silent data skipping.
     """
     import pyarrow.parquet as pq
 
-    # Enumerate parquet files up front so the async block does not touch
-    # the filesystem (ASYNC240 — Path.glob is blocking). Column names
-    # come from the arrow schema, not user input, so the dynamic SQL
-    # is safe despite S608's warning.
     files = sorted(partition.glob("*.parquet"))  # noqa: ASYNC240
-    rows = 0
+    inserted = 0
     async with conn.cursor() as cur:
         for file in files:
             table = pq.read_table(file)
             batches = table.to_batches(max_chunksize=batch_size)
             for batch in batches:
                 columns = batch.schema.names
+                for column in columns:
+                    if column not in _ALLOWED_SNAPSHOT_COLUMNS:
+                        raise MigrationError(
+                            f"Unexpected column {column!r} in {file}; "
+                            "aborting to avoid SQL injection surface."
+                        )
                 placeholders = ", ".join(["%s"] * len(columns))
                 column_list = ", ".join(f'"{c}"' for c in columns)
-                # Column names come from the arrow schema, not user
-                # input, so the dynamic SQL is safe despite S608.
                 sql = (
                     f"INSERT INTO snapshots ({column_list}) "  # noqa: S608
                     f"VALUES ({placeholders}) ON CONFLICT DO NOTHING"
                 )
                 records = [tuple(row) for row in batch.to_pylist()]
                 await cur.executemany(sql, records)
-                rows += len(records)
+                # rowcount reflects actually inserted rows only;
+                # ON CONFLICT skips do not increment it.
+                inserted += max(cur.rowcount, 0)
     await conn.commit()
-    return rows
+    return inserted
 
 
 def _duckdb_group_counts(duckdb_path: Path, start: str, end: str) -> dict[tuple[str, str], int]:

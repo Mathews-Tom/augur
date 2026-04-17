@@ -67,17 +67,27 @@ class NATSBus(EventBus):
     async def subscribe(
         self, subject_pattern: str, consumer_group: str
     ) -> AsyncIterator[BusMessage]:
+        """At-least-once delivery via pull-subscribe + deferred ack.
+
+        The previous message is acked at the *start* of the next
+        iteration so a consumer that breaks out of the async-for
+        leaves the in-flight message un-acked. JetStream's pending
+        queue will redeliver it on restart, matching the
+        at-least-once contract in `base.py`.
+        """
         if self._js is None:
             raise BusError("NATSBus.connect() must be called before subscribe()")
         sub = await self._js.pull_subscribe(subject_pattern, durable=consumer_group)
         import asyncio as _asyncio
 
+        pending_msg: Any | None = None
         try:
             while True:
+                if pending_msg is not None:
+                    await pending_msg.ack()
+                    pending_msg = None
                 msgs = await sub.fetch(batch=1, timeout=1)
                 if not msgs:
-                    # Yield control so an outer cancellation or break can
-                    # observe the generator between empty-fetch polls.
                     await _asyncio.sleep(0)
                     continue
                 for msg in msgs:
@@ -86,7 +96,10 @@ class NATSBus(EventBus):
                         payload=msg.data,
                         headers=dict(msg.headers) if msg.headers else None,
                     )
-                    await msg.ack()
+                    # Defer ack to the next loop iteration so breaks
+                    # and crashes leave messages pending for
+                    # redelivery.
+                    pending_msg = msg
         finally:
             await sub.unsubscribe()
 
@@ -118,22 +131,35 @@ class NATSKVLock(DistributedLock):
         return True
 
     async def renew(self, name: str, holder_id: str, ttl_seconds: int) -> bool:
+        # TTL is configured on the bucket at create_key_value time;
+        # renew uses update with the observed revision so a stale
+        # replica recovering from a network blip cannot overwrite the
+        # new holder's value with its own holder_id.
         _ = ttl_seconds
         if self._kv is None:
             raise LockError("NATSKVLock.connect() must be called before renew()")
         entry = await self._kv.get(name)
         if entry is None or entry.value.decode("utf-8") != holder_id:
             return False
-        await self._kv.put(name, holder_id.encode("utf-8"))
+        try:
+            await self._kv.update(name, holder_id.encode("utf-8"), last=entry.revision)
+        except Exception:
+            return False
         return True
 
     async def release(self, name: str, holder_id: str) -> None:
+        # Compare-and-delete so a concurrent owner swap between the
+        # get() and delete() RPCs is detected and the release becomes
+        # a no-op rather than deleting the new holder's key.
         if self._kv is None:
             raise LockError("NATSKVLock.connect() must be called before release()")
         entry = await self._kv.get(name)
         if entry is None or entry.value.decode("utf-8") != holder_id:
             return
-        await self._kv.delete(name)
+        try:
+            await self._kv.delete(name, last=entry.revision)
+        except Exception:
+            return
 
     async def holder(self, name: str) -> str | None:
         if self._kv is None:
