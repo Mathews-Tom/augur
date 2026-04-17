@@ -1,0 +1,22 @@
+# Smoke-stack observability config.
+#
+# The Prometheus service in compose scrapes localhost:9091..9097. Pick
+# a port per worker by overriding `AUGUR_METRICS_PORT` at launch time,
+# or leave the default 9090 if you run one worker at a time.
+
+[metrics]
+kind = "prometheus"
+prometheus_bind = "127.0.0.1"
+prometheus_port = 9090
+
+[traces]
+# Set to "otlp" to exercise the OTel collector service. Leave as
+# "disabled" for faster iteration.
+kind = "disabled"
+otlp_endpoint = "http://localhost:4317"
+service_name = "augur-smoke"
+sampling_ratio = 1.0
+
+[logs]
+level = "DEBUG"
+format = "json"

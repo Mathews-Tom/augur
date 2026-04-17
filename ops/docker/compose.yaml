@@ -1,0 +1,88 @@
+# Local smoke-test stack for the distributed runtime.
+#
+# Brings up NATS JetStream, Redis, TimescaleDB, and a Prometheus
+# scraper pointed at the worker /metrics ports. Workers are NOT
+# launched by this compose file — operators run them in separate
+# terminals with `python -m augur_signals.workers.<kind>` so the
+# stack can be exercised piecewise.
+#
+# Usage:
+#     docker compose -f ops/docker/compose.yaml up -d
+#     export AUGUR_CONFIG_DIR=$(pwd)/ops/docker/config
+#     python -m augur_signals.workers.poller --platform polymarket
+#     docker compose -f ops/docker/compose.yaml down -v
+
+name: augur-smoke
+
+services:
+  nats:
+    image: nats:2.11-alpine
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "--http_port"
+      - "8222"
+    ports:
+      - "4222:4222"   # client
+      - "8222:8222"   # http monitoring
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: augur
+      POSTGRES_PASSWORD: augur
+      POSTGRES_DB: augur
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U augur -d augur"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  otel-collector:
+    # Optional — only needed if you exercise the OTel tracer.
+    # Comment out if your workers have traces.kind = "disabled".
+    image: otel/opentelemetry-collector:0.108.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+
+volumes:
+  nats_data:
+  timescale_data:
+  prometheus_data:
