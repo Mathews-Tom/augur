@@ -1,0 +1,43 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        args: [--strict]
+        additional_dependencies:
+          - pydantic>=2.7
+          - structlog>=24.0
+        files: ^src/
+
+  - repo: local
+    hooks:
+      - id: llm-import-guard
+        name: Guard against LLM imports in augur_signals
+        entry: bash -c 'if grep -rE "import (anthropic|openai|ollama|llama)" src/augur_signals/; then echo "LLM import in src/augur_signals/ is forbidden by docs/architecture/system-design.md"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: forbidden-token-doc-lint
+        name: Reject causal-narrative phrases in docs/
+        entry: bash -c 'set -e; if grep -rE "\b(may be driven by|consistent with new information|potentially indicates|likely reflects|suggests that)\b" docs/ | grep -v "docs/methodology/calibration-methodology.md"; then echo "Causal-narrative phrase in docs/"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: secret-scan
+        name: Scan for hardcoded secrets in src/ and config/
+        entry: bash -c 'if grep -rE "(api_key|password|secret|token)\s*=\s*[\"'\''][^\"'\'']{20,}" src/ config/ 2>/dev/null; then echo "Possible hardcoded secret"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      - id: schema-export-check
+        name: Verify schemas/ is in sync with Pydantic models
+        entry: bash -c 'uv run python scripts/export_schemas.py --check'
+        language: system
+        pass_filenames: false
