@@ -66,6 +66,24 @@ explicit_package_bases = true
 module = ["uuid_extensions.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["pyarrow.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["filelock.*"]
+ignore_missing_imports = true
+
+# pyarrow has no type stubs; relax the no-any-unimported gate for the
+# storage modules that pass pyarrow types across their public surface.
+[[tool.mypy.overrides]]
+module = [
+    "augur_labels.storage._schema",
+    "augur_labels.storage.parquet_writer",
+    "augur_labels.storage.reader",
+]
+disallow_any_unimported = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
