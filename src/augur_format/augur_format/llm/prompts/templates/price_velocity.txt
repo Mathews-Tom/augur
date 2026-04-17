@@ -1,0 +1,26 @@
+Signal type: price_velocity
+Market: {market_id} ({platform})
+Question (verbatim): {market_question}
+
+Movement:
+- Magnitude: {magnitude}
+- Direction: {direction} (1 = up, -1 = down, 0 = neither)
+- Calibrated confidence: {confidence}
+- FDR-adjusted: {fdr_adjusted}
+- Liquidity tier: {liquidity_tier}
+- Detection window: {window_seconds} seconds
+- Detected at: {detected_at}
+
+Resolution criteria (verbatim): {resolution_criteria}
+Resolution source (verbatim): {resolution_source}
+Closes at: {closes_at}
+
+Manipulation flags: {manipulation_flags_csv_or_none}
+
+Related markets:
+{related_markets_block}
+
+Investigation prompts:
+{investigation_prompts_block}
+
+Generate the IntelligenceBrief now as a JSON object.
