@@ -1,6 +1,6 @@
 [project]
 name = "augur-format"
-version = "0.0.0"
+version = "0.1.0"
 description = "Formatters for Augur: deterministic JSON, Markdown, and gated LLM briefs"
 requires-python = ">=3.12"
 

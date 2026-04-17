@@ -1,6 +1,6 @@
 [project]
 name = "augur-labels"
-version = "0.0.0"
+version = "0.1.0"
 description = "Newsworthy event labeling pipeline for Augur"
 requires-python = ">=3.12"
 
