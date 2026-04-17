@@ -101,7 +101,11 @@ def _round_floats(value: Any, float_decimals: int) -> Any:
     if isinstance(value, list):
         return [_round_floats(v, float_decimals) for v in value]
     if isinstance(value, dict):
-        return {k: _round_floats(v, float_decimals) for k, v in value.items()}
+        # Sort nested dict keys so producers with variable insertion
+        # order (e.g. raw_features populated conditionally by dedup
+        # and cluster-merge paths) still emit byte-identical JSON for
+        # the same logical payload.
+        return {k: _round_floats(value[k], float_decimals) for k in sorted(value)}
     return value
 
 

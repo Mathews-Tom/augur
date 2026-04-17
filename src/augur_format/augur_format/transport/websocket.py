@@ -81,6 +81,9 @@ class ClientSubscription:
     queue: asyncio.Queue[WebSocketFrame]
     consumer_type: str | None = None
     dropped: int = 0
+    # Per-subscription lock so concurrent publishers serialise the
+    # full-queue check-and-drop instead of each draining one slot.
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 class WebSocketBroadcaster:
@@ -124,15 +127,16 @@ class WebSocketBroadcaster:
         for sub in list(self._subscriptions):
             if consumer_type_filter is not None and not consumer_type_filter(sub.consumer_type):
                 continue
-            if sub.queue.full():
-                # Drop the oldest to keep the newest — timeliness matters
-                # more than completeness under storm conditions.
-                try:
-                    sub.queue.get_nowait()
-                except asyncio.QueueEmpty:
-                    pass
-                sub.dropped += 1
-            await sub.queue.put(frame)
+            async with sub.lock:
+                # Serialise check-and-drop so concurrent publishers do
+                # not each drain a slot from the same full queue.
+                if sub.queue.full():
+                    try:
+                        sub.queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        pass
+                    sub.dropped += 1
+                await sub.queue.put(frame)
 
     async def stream(self, subscription: ClientSubscription) -> AsyncIterator[WebSocketFrame]:
         """Yield frames queued for *subscription* until cancelled."""
@@ -143,23 +147,23 @@ class WebSocketBroadcaster:
             self.unsubscribe(subscription)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class HeartbeatScheduler:
-    """Emits heartbeat frames at the configured interval.
+    """Answers "should a heartbeat emit now?" against caller-supplied time.
 
-    Exposed as a helper rather than a long-lived task so the engine
-    owns the lifecycle; tests invoke ``tick`` directly against a
-    controllable clock.
+    The scheduler is mutable by design — ``record`` tracks the last
+    emission so ``should_emit`` can gate the next one. Engine code
+    owns the outer loop and passes ``now`` explicitly so the scheduler
+    stays backtest-deterministic.
     """
 
     interval_seconds: int = 30
-    _last_sent: list[datetime] = field(default_factory=list)
+    _last_sent: datetime | None = field(default=None)
 
     def should_emit(self, now: datetime) -> bool:
-        if not self._last_sent:
+        if self._last_sent is None:
             return True
-        elapsed = (now - self._last_sent[-1]).total_seconds()
-        return elapsed >= self.interval_seconds
+        return (now - self._last_sent).total_seconds() >= self.interval_seconds
 
     def record(self, now: datetime) -> None:
-        self._last_sent.append(now)
+        self._last_sent = now

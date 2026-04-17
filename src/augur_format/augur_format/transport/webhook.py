@@ -16,29 +16,38 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 from augur_format._config import WebhookConfig
 from augur_format.deterministic.json_feed import to_canonical_json
 from augur_format.deterministic.markdown import MarkdownFormatter
 from augur_format.deterministic.severity import derive_severity
-from augur_format.transport.retry import DeliveryBackoff, deliver_with_backoff
-from augur_signals.models import ConsumerType, SignalContext
+from augur_format.transport.retry import (
+    DeliveryBackoff,
+    DeliveryRetryExhaustedError,
+    deliver_with_backoff,
+)
+from augur_signals.models import SignalContext
 
 WebhookFormat = Literal["json", "markdown", "slack_blocks"]
 
 
 class WebhookTarget(BaseModel):
-    """One configured webhook destination."""
+    """One configured webhook destination.
+
+    Consumer-type gating and LLM-assisted opt-in live on the
+    SignalRouter and the LLM formatter gate respectively; neither
+    belongs on the delivery target, where there is no call site.
+    Phase-4 re-introduces ``accepts_llm_assisted`` when the gated
+    formatter needs per-target opt-in.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     target_id: str
     url: HttpUrl
     format: WebhookFormat
-    consumer_types: list[ConsumerType] = Field(default_factory=list)
     auth_header_env: str | None = None
-    accepts_llm_assisted: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,20 +175,20 @@ class WebhookFormatter:
             return response
 
         try:
-            response = await deliver_with_backoff(_call, self._backoff())
-        except Exception as err:
+            response, attempts = await deliver_with_backoff(_call, self._backoff())
+        except DeliveryRetryExhaustedError as err:
             return DeliveryResult(
                 target_id=target.target_id,
                 status_code=None,
-                attempts=self._config.max_retries,
+                attempts=err.attempts,
                 delivered=False,
-                reason=repr(err),
+                reason=repr(err.last_error),
             )
         delivered = 200 <= response.status_code < 400
         return DeliveryResult(
             target_id=target.target_id,
             status_code=response.status_code,
-            attempts=1,
+            attempts=attempts,
             delivered=delivered,
             reason="ok" if delivered else f"http_{response.status_code}",
         )
