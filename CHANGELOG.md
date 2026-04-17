@@ -4,6 +4,38 @@ All notable changes to Augur are recorded in this file. Format follows [Keep a C
 
 ## [Unreleased]
 
+### Added — Distributed Runtime Scaffolding
+
+- `src/augur_signals/bus/base.py` — byte-level `EventBus` protocol plus `BusMessage` envelope. The Phase 1 `InProcessAsyncBus` remains the monolith transport; the new protocol is consumed by multi-process workers via the factory in `bus/factory.py`.
+- `src/augur_signals/bus/nats.py` — NATS JetStream adapter. One stream per subject prefix, pull consumers keyed by `(pattern, consumer_group)`, publish with optional headers. `NATSKVLock` uses JetStream KV as the distributed-lock backend.
+- `src/augur_signals/bus/redis_streams.py` — Redis Streams adapter with XADD/XREADGROUP/XACK for at-least-once delivery. `RedisLock` uses `SET NX EX` for acquire and `WATCH`/`MULTI`/`EXEC` for CAS renew/release so the adapter works against fakeredis and Redis Cluster alike.
+- `src/augur_signals/bus/_lock.py` — `DistributedLock` protocol plus `InMemoryLock` reference implementation with an injectable monotonic clock for deterministic test failover.
+- `src/augur_signals/storage/timescaledb_store.py` — TimescaleDB adapter mirroring `DuckDBStore`'s public surface. `initialize()` creates hypertables with configurable chunk intervals, compression segment-by clauses, and retention policies; zero-day values skip the policy.
+- `src/augur_signals/storage/factory.py` — picks between DuckDB and TimescaleDB backends via `config/storage.toml` `backend.kind`.
+- `src/augur_signals/_observability.py` — Prometheus-backed counters/gauges and an OpenTelemetry OTLP tracer behind the same shim call sites Phase 1 already instruments. Tests pass a fresh `CollectorRegistry` per case for isolation.
+- `src/augur_signals/workers/harness.py` — `WorkerHarness` supervisor. Connects the bus, fires the heartbeat task, drives the worker main coroutine, handles SIGINT / SIGTERM, and records `augur_worker_alive` / `augur_worker_processed_total` metrics.
+- `src/augur_signals/workers/stateless.py` — `run_bridge` consumer/transform/publisher spine shared by feature, detector, manipulation, calibration, and context-format workers. Shard filter uses FNV-1a modulo replica count for per-market pinning.
+- `src/augur_signals/workers/singleton.py` — `SingletonRunner` with `SingletonHeartbeat` renewing a `DistributedLock` on every beat. Lost renewals stop the harness and trigger orchestrator-driven restart, which re-enters the acquire loop so the surviving replica takes over.
+- `src/augur_signals/workers/poller.py` / `subjects.py` / `sharding.py` — platform-poller entrypoint, subject naming helpers aligned with `.docs/phase-5-scaling.md §4.3`, and the shared shard-index function.
+- `config/storage.toml`, `config/bus.toml`, `config/observability.toml` with `StorageConfig`, `BusConfig`, `ObservabilityConfig` Pydantic loaders (`frozen=True`, `extra="forbid"`).
+- `scripts/migrate_to_timescale.py` — `backfill` and `verify` subcommands for Parquet-to-TimescaleDB migration with row-count parity enforcement.
+- `scripts/dual_write_sidecar.py` — tee consumer that replays engine writes into TimescaleDB during the dual-write window with `augur_dual_write_lag_seconds` gauge + alert counter.
+- `ops/docker/Dockerfile` — multi-stage image shared across worker kinds; Kubernetes manifests under `ops/deploy/` (namespace, ConfigMap, Secret, pollers, stateless worker Deployments, singleton StatefulSets, Services, HPAs, ServiceMonitor, Kustomize overlay).
+- `augur-signals` gains optional-dependency groups `bus-nats`, `bus-redis`, `storage-timescale`, `observability`, and `distributed` so the monolith wheel stays lean and the multi-process deployment pulls the full driver set.
+
+### Operational Handoff — Distributed Runtime
+
+After merge, the Phase 1-4 monolith remains the production deployment. Cutover to the multi-process runtime is operator-driven once the growth triggers in `.docs/phase-5-scaling.md §2` fire twice across separate measurement windows:
+
+1. Stand up TimescaleDB; run `scripts/migrate_to_timescale.py backfill --from labels/snapshots_archive`, then `verify` for byte-for-byte parity.
+2. Start the dual-write sidecar; observe `augur_dual_write_lag_seconds` for ≥7 days below the 10-second threshold.
+3. Deploy the message bus (NATS or Redis) and bring up shadow workers (consume only, no publish).
+4. Flip workers to active mode one kind at a time, starting with manipulation (smallest blast radius), then feature/detector (per-market shard validation), then the dedup and LLM singletons.
+5. Flip `config/storage.toml` `backend.kind` to `timescaledb` and restart the engine; retain the DuckDB archive for 30 days for rollback.
+6. After 30 days of stable operation, remove the DuckDB startup path and archive the Parquet archive to cold storage.
+
+Live failover integration tests (NATS cluster, Redis Cluster, TimescaleDB with WAL streaming) remain operator-owned — the CI suite exercises the adapters against fakes and stubs. `ops/deploy/` manifests are a starting point; a production rollout layers operator-specific ingress, RBAC, and network policy on top.
+
 ### Added — Gated LLM Secondary Formatter
 
 - `src/augur_format/llm/` package — the only location in the codebase where LLM SDK imports live, complementing the CI grep guard over `src/augur_signals/`.

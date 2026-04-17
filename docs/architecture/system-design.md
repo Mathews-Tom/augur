@@ -428,3 +428,23 @@ The closed list of phrase strings the LLM formatter rejects. Maintained as a con
 6. **Pre-resolution exclusion.** No detector fires within six hours of `closes_at`. Enforced inside each detector's `ingest()`.
 7. **Manipulation flags are descriptive, not prescriptive.** Augur attaches flags; consumers apply suppression policy.
 8. **Deterministic context primary, LLM secondary.** The canonical machine-consumed output is `SignalContext` JSON. The LLM formatter is gated, opt-in, and routed to human channels only by default.
+
+## Deployment Modes
+
+Augur supports two deployment modes from the same codebase:
+
+### Monolith (Phase 1-4 default)
+
+One `augur_signals.engine` process owns the full pipeline from ingestion to formatter emission. `InProcessAsyncBus` routes between layers; `DuckDBStore` persists; the deterministic formatters run inline. This mode is the supported deployment until the growth triggers in `.docs/phase-5-scaling.md §2` fire twice across separate measurement windows.
+
+### Distributed Runtime (Phase 5)
+
+The engine decomposes into worker processes when scale demands it:
+
+- Pollers (`augur_signals.workers.poller`), one per platform, publish snapshots to `augur.snapshots.<platform>.<market_id>`.
+- Stateless workers (feature, detector, manipulation, calibration, context_format) scale horizontally behind an `EventBus` (NATS JetStream or Redis Streams). Per-market sharding uses FNV-1a modulo replica count; each replica sees only its shard.
+- Singletons (dedup, llm_formatter) run as active-passive pairs coordinated by a `DistributedLock`. The active instance renews the lock on each heartbeat; a missed renewal flips the harness, orchestrator-driven restart re-enters the acquire loop, and the surviving replica takes over within `ttl_seconds + renew_interval_seconds`.
+- TimescaleDB replaces DuckDB for persistence. Hypertables partition `snapshots`, `features`, and `signals` by time with compression and retention policies attached per `storage.toml`.
+- Prometheus + OpenTelemetry replace the Phase 1 no-op shims without any call-site edits; the backend swap happens in `configure_observability`.
+
+The distributed runtime is operator-driven — see `docs/operations/distributed-runbook.md` for cutover, rollback, and failover procedures. The monolith path remains fully supported during and after rollout so operators can revert to DuckDB for 30 days post-cutover.
