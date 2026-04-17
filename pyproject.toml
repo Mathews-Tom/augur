@@ -1,0 +1,82 @@
+[project]
+name = "augur"
+version = "0.0.0"
+description = "Structured market anomaly detection for prediction markets"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+
+dependencies = [
+    "augur-signals",
+    "augur-labels",
+    "augur-format",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["src/augur_signals", "src/augur_labels", "src/augur_format"]
+
+[tool.uv.sources]
+augur-signals = { workspace = true }
+augur-labels = { workspace = true }
+augur-format = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pre-commit>=3.7",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["schemas", "data", "labels", ".docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "B", "UP", "ANN", "ASYNC", "S", "RUF"]
+ignore = ["ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "ANN", "B018"]
+"scripts/**" = ["T201"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_any_unimported = true
+mypy_path = ["src/augur_signals", "src/augur_labels", "src/augur_format"]
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["structlog.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --cov=src --cov-report=term-missing --cov-fail-under=80"
+markers = [
+    "unit: unit tests",
+    "integration: integration tests requiring external services",
+    "property: hypothesis property-based tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
