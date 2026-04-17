@@ -50,12 +50,37 @@ def export_schema(model_cls: type[BaseModel], version: str) -> None:
     out.write_text(serialize(model_cls), encoding="utf-8")
 
 
-def check_schema(model_cls: type[BaseModel], version: str) -> bool:
-    """Return True if the on-disk schema matches the current model."""
+def check_schema(model_cls: type[BaseModel], version: str) -> tuple[bool, bool]:
+    """Compare on-disk schema to the current model.
+
+    Returns a ``(exists, matches)`` pair. ``exists`` is False when the
+    schema file is missing on disk; ``matches`` is True only when the
+    file exists and its contents are byte-for-byte identical to the
+    serialized model. The split lets the caller distinguish a missing
+    file from a content drift and report them separately.
+    """
     path = schema_path(model_cls.__name__, version)
     if not path.exists():
-        return False
-    return path.read_text(encoding="utf-8") == serialize(model_cls)
+        return False, False
+    return True, path.read_text(encoding="utf-8") == serialize(model_cls)
+
+
+def find_orphan_schemas() -> list[str]:
+    """Return schema filenames on disk with no corresponding MODELS entry.
+
+    The schemas/ directory is machine-managed; any file that does not
+    trace to a registered (model, version) pair indicates a stale or
+    hand-edited schema. The --check mode treats orphans as drift so
+    they do not accumulate silently.
+    """
+    expected = {f"{cls.__name__}-{ver}.json" for cls, ver in MODELS}
+    if not SCHEMAS_DIR.exists():
+        return []
+    return sorted(
+        p.name
+        for p in SCHEMAS_DIR.iterdir()
+        if p.is_file() and p.suffix == ".json" and p.name not in expected
+    )
 
 
 def main() -> int:
@@ -68,12 +93,24 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.check:
-        drift: list[str] = []
+        missing: list[str] = []
+        drifted: list[str] = []
         for model_cls, version in MODELS:
-            if not check_schema(model_cls, version):
-                drift.append(f"{model_cls.__name__}-{version}")
-        if drift:
-            print("Schema drift detected:", ", ".join(drift), file=sys.stderr)
+            exists, matches = check_schema(model_cls, version)
+            label = f"{model_cls.__name__}-{version}"
+            if not exists:
+                missing.append(label)
+            elif not matches:
+                drifted.append(label)
+        orphans = find_orphan_schemas()
+
+        if missing:
+            print("Schema files missing:", ", ".join(missing), file=sys.stderr)
+        if drifted:
+            print("Schema drift detected:", ", ".join(drifted), file=sys.stderr)
+        if orphans:
+            print("Orphan schemas on disk:", ", ".join(orphans), file=sys.stderr)
+        if missing or drifted or orphans:
             return 1
         print("All schemas in sync.")
         return 0
