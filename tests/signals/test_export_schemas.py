@@ -25,6 +25,9 @@ def _reload_export_schemas(tmp_path: Path) -> object:
     import export_schemas
 
     importlib.reload(export_schemas)
+    # Isolate the per-test registry from the production model set so
+    # --check only sees what the test explicitly registers.
+    export_schemas.MODELS.clear()  # type: ignore[attr-defined]
     export_schemas.SCHEMAS_DIR = tmp_path  # type: ignore[attr-defined]
     return export_schemas
 
