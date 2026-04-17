@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+from augur_format.llm.models import SCHEMA_VERSION
 from augur_signals.models import ConsumerType, SignalContext
 
 _DEFAULT_TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
@@ -108,5 +109,5 @@ _BRIEF_SCHEMA_SUMMARY: str = (
     "- formatter_version: string\n"
     "- generated_at: ISO-8601 UTC datetime\n"
     "- forbidden_token_check: must equal 'passed'\n"
-    "- schema_version: '1.0.0'"
+    f"- schema_version: '{SCHEMA_VERSION}'"
 )

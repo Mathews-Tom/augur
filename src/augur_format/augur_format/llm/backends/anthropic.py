@@ -80,6 +80,19 @@ class AnthropicBackend(AbstractLLMBackend):
                     timeout=self._timeout,
                 )
             except Exception as err:
+                # Narrow retry to transient failures. Authentication
+                # and permission errors raise immediately so auth
+                # failures do not burn the retry budget. The class
+                # lookup is string-based so the module stays loadable
+                # without the anthropic SDK installed.
+                class_path = f"{type(err).__module__}.{type(err).__name__}"
+                terminal = {
+                    "anthropic.AuthenticationError",
+                    "anthropic.PermissionDeniedError",
+                    "anthropic.BadRequestError",
+                }
+                if class_path in terminal:
+                    raise BackendError(f"anthropic terminal error: {err!r}") from err
                 last_error = err
                 continue
             duration_ms = int((time.perf_counter() - started) * 1000)
