@@ -92,8 +92,18 @@ class ClusterMerge:
         return cluster
 
 
+_TIER_RANK: dict[str, int] = {"high": 3, "mid": 2, "low": 1}
+
+
 def _collapse(cluster: list[MarketSignal]) -> MarketSignal:
-    base = max(cluster, key=lambda s: s.magnitude)
+    # Per docs/architecture/deduplication-and-storms.md §Cluster-Level
+    # Merge, the representative is the highest-liquidity-tier market in
+    # the cluster; ties break alphabetically by market_id.
+    top_tier = max(_TIER_RANK.get(s.liquidity_tier, 0) for s in cluster)
+    base = min(
+        (s for s in cluster if _TIER_RANK.get(s.liquidity_tier, 0) == top_tier),
+        key=lambda s: s.market_id,
+    )
     magnitude = max(s.magnitude for s in cluster)
     confidence = max(s.confidence for s in cluster)
     manipulation_flags = list({flag for s in cluster for flag in s.manipulation_flags})

@@ -81,7 +81,8 @@ class RegimeShiftDetector:
 
         if positive <= threshold and abs(negative) <= threshold:
             return None
-        direction: Literal[-1, 0, 1] = 1 if positive > threshold else -1
+        # When both arms cross, the dominant excursion's sign wins.
+        direction: Literal[-1, 0, 1] = 1 if positive >= abs(negative) else -1
         magnitude = min(1.0, max(abs(positive), abs(negative)) / (threshold * 2.0 + 1e-9))
         tier = banding(snapshot.volume_24h)
         cusum.reset()

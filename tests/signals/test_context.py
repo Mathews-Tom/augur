@@ -158,6 +158,24 @@ def test_context_assembler_deterministic(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_context_assembler_100_invocations_byte_identical(tmp_path: Path) -> None:
+    store = DuckDBStore(tmp_path / "det.duckdb")
+    store.initialize()
+    store.insert_snapshot(_snapshot("a", question="Will X?"))
+    store.insert_snapshot(_snapshot("b", price=0.3, question="Will Y?"))
+    taxonomy = MarketTaxonomy([TaxonomyEdge("a", "b", "inverse", 0.9)])
+    resolver = RelatedMarketResolver(taxonomy, store)
+    library = InvestigationPromptLibrary(
+        [(SignalType.PRICE_VELOCITY, "monetary_policy", ["Check FOMC"])]
+    )
+    assembler = ContextAssembler(store, resolver, library, {"a": "monetary_policy"})
+    signal = _signal()
+    payloads = {assembler.assemble(signal).model_dump_json() for _ in range(100)}
+    assert len(payloads) == 1
+    store.close()
+
+
+@pytest.mark.unit
 def test_context_assembler_raises_on_missing_metadata(tmp_path: Path) -> None:
     store = DuckDBStore(tmp_path / "b.duckdb")
     store.initialize()

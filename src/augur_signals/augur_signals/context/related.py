@@ -21,11 +21,14 @@ class RelatedMarketResolver:
         self,
         taxonomy: MarketTaxonomy,
         store: DuckDBStore,
-        freshness_seconds: int = 3_600,
+        delta_window_seconds: int = 86_400,
     ) -> None:
         self._taxonomy = taxonomy
         self._store = store
-        self._freshness = timedelta(seconds=freshness_seconds)
+        # Window over which to compute delta_24h against the most-recent
+        # snapshot. The default matches the field's semantics in
+        # docs/contracts/schema-and-versioning.md §RelatedMarketState.
+        self._delta_window = timedelta(seconds=delta_window_seconds)
 
     def resolve(self, market_id: str) -> list[RelatedMarketState]:
         edges = self._taxonomy.edges_for(market_id)
@@ -34,9 +37,9 @@ class RelatedMarketResolver:
             snap = self._store.latest_snapshot(edge.market_b)
             if snap is None:
                 continue
-            # Fetch the prior day's snapshot for the delta.
+            # Fetch the oldest in-window snapshot for the delta.
             prior_end = snap.timestamp
-            prior_start = prior_end - self._freshness
+            prior_start = prior_end - self._delta_window
             window = self._store.snapshots_in_window(edge.market_b, prior_start, prior_end)
             prior_price = window[0].last_price if window else snap.last_price
             delta_24h = snap.last_price - prior_price

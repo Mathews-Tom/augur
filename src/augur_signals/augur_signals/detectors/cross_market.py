@@ -115,7 +115,7 @@ class CrossMarketDivergenceDetector:
         now: datetime,
     ) -> list[MarketSignal]:
         candidates: list[
-            tuple[str, float, float, MarketSnapshot, MarketSnapshot, RelatedMarketPair]
+            tuple[str, str, float, float, MarketSnapshot, MarketSnapshot, RelatedMarketPair]
         ] = []
         for pair in self._pairs:
             snap_a = snapshots.get(pair.market_a)
@@ -141,16 +141,19 @@ class CrossMarketDivergenceDetector:
             std_err = 1.0 / math.sqrt(max(1.0, len(state.prices_a) - 3))
             test_statistic = z_delta / std_err
             p_value = _two_sided_normal_p(test_statistic)
-            candidates.append((pair.market_a, rho, p_value, snap_a, snap_b, pair))
+            # Pair-level key so the FDR controller's set return distinguishes
+            # between pairs that share a market_a.
+            pair_key = f"{pair.market_a}::{pair.market_b}"
+            candidates.append((pair_key, pair.market_a, rho, p_value, snap_a, snap_b, pair))
 
         if not candidates:
             return []
         passing = self._fdr.submit_pvalues(
-            self.detector_id, [(candidate[0], candidate[2]) for candidate in candidates]
+            self.detector_id, [(candidate[0], candidate[3]) for candidate in candidates]
         )
         signals: list[MarketSignal] = []
-        for market_a, rho, p_value, snap_a, snap_b, pair in candidates:
-            if market_a not in passing:
+        for pair_key, market_a, rho, p_value, snap_a, snap_b, pair in candidates:
+            if pair_key not in passing:
                 continue
             magnitude = min(1.0, max(0.0, 1.0 - p_value))
             tier = banding(snap_a.volume_24h)
