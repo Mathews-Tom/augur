@@ -1,6 +1,6 @@
 [project]
 name = "augur"
-version = "0.0.0"
+version = "0.1.0"
 description = "Structured market anomaly detection for prediction markets"
 readme = "README.md"
 requires-python = ">=3.12"

@@ -1,6 +1,6 @@
 [project]
 name = "augur-signals"
-version = "0.0.0"
+version = "0.1.0"
 description = "Signal extraction core for Augur: detectors, calibration, context assembly"
 requires-python = ">=3.12"
 
