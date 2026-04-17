@@ -1,0 +1,63 @@
+# Consumer routing table. Mirrors the Routing Table in
+# docs/contracts/consumer-registry.md. The augur-format routing layer
+# reads this file and routes each brief to the consumers whose category
+# lists include the signal's market_category.
+#
+# Adding a consumer or category requires a schema-version bump per the
+# Addition Process in docs/contracts/consumer-registry.md.
+
+[categories.monetary_policy]
+consumers = ["macro_research_agent", "financial_news_desk", "dashboard"]
+
+[categories.inflation]
+consumers = ["macro_research_agent", "dashboard"]
+
+[categories.employment]
+consumers = ["macro_research_agent", "dashboard"]
+
+[categories.sovereign_debt]
+consumers = ["macro_research_agent", "financial_news_desk", "dashboard"]
+
+[categories.currency]
+consumers = ["macro_research_agent", "dashboard"]
+
+[categories.geopolitics]
+consumers = ["geopolitical_research_agent", "dashboard"]
+
+[categories.conflict]
+consumers = ["geopolitical_research_agent", "dashboard"]
+
+[categories.sanctions]
+consumers = ["geopolitical_research_agent", "regulatory_news_desk", "dashboard"]
+
+[categories.diplomatic]
+consumers = ["geopolitical_research_agent", "dashboard"]
+
+[categories.crypto_regulatory]
+consumers = ["crypto_research_agent", "regulatory_news_desk", "dashboard"]
+
+[categories.crypto_etf]
+consumers = ["crypto_research_agent", "financial_news_desk", "dashboard"]
+
+[categories.crypto_enforcement]
+consumers = ["crypto_research_agent", "regulatory_news_desk", "dashboard"]
+
+[categories.crypto_protocol]
+consumers = ["crypto_research_agent", "dashboard"]
+
+[categories.regulatory]
+consumers = ["regulatory_news_desk", "dashboard"]
+
+[categories.markets]
+consumers = ["financial_news_desk", "dashboard"]
+
+[categories.corporate]
+consumers = ["financial_news_desk", "dashboard"]
+
+[categories.m_and_a]
+consumers = ["financial_news_desk", "dashboard"]
+
+# Markets in categories not listed above fall through to dashboard-only
+# routing per docs/contracts/consumer-registry.md.
+[categories.default]
+consumers = ["dashboard"]

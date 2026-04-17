@@ -1,0 +1,19 @@
+# Curated investigation-prompt library. The context assembler looks up
+# prompts keyed by (signal_type, market_category) and attaches the
+# resulting list verbatim to each SignalContext. The library is frozen
+# at engine startup; runtime code never mutates it.
+#
+# Schema and category keys are documented in
+# docs/architecture/system-design.md §Layer 8. A single placeholder
+# entry is present so the loader validates end-to-end. Populate the
+# operational catalogue against the categories in
+# docs/contracts/consumer-registry.md.
+
+[[prompts]]
+signal_type = "price_velocity"
+market_category = "monetary_policy"
+prompts = [
+    "Check FOMC calendar for speeches or releases in the last six hours.",
+    "Cross-reference related macro markets for confirming moves.",
+    "Verify the resolution source has not posted an early indication.",
+]
