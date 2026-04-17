@@ -1,14 +1,14 @@
-"""Storage backend factory keyed by ``StorageConfig.backend.kind``.
+"""Storage backend factory keyed by `StorageConfig.backend.kind`.
 
-The Phase 1-4 monolith calls ``make_duckdb_store(config)`` directly
+The Phase 1-4 monolith calls `make_duckdb_store(config)` directly
 when instantiating the engine. Phase 5 workers use this factory at
-startup so flipping ``config/storage.toml`` ``backend.kind`` from
-``"duckdb"`` to ``"timescaledb"`` restarts the process against the
+startup so flipping `config/storage.toml` `backend.kind` from
+`"duckdb"` to `"timescaledb"` restarts the process against the
 new backend without code edits.
 
-``make_storage`` returns the DuckDB adapter synchronously or the
-TimescaleDB adapter paired with an open ``AsyncConnection``; the
-TimescaleDB branch is ``async`` because opening the connection is
+`make_storage` returns the DuckDB adapter synchronously or the
+TimescaleDB adapter paired with an open `AsyncConnection`; the
+TimescaleDB branch is `async` because opening the connection is
 awaited. Callers select the right helper for their deployment mode.
 """
 
@@ -45,8 +45,8 @@ async def make_timescaledb_store(
     """Open a TimescaleDB store from *config*.
 
     If *connection* is None the factory reads the DSN from the env var
-    named in ``config.backend.timescale_url_env`` and opens a new
-    ``AsyncConnection``. Tests pass a stub connection explicitly.
+    named in `config.backend.timescale_url_env` and opens a new
+    `AsyncConnection`. Tests pass a stub connection explicitly.
     """
     if config.backend.kind != "timescaledb":
         raise StorageConfigurationError(

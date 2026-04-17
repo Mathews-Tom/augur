@@ -1,18 +1,18 @@
 """Dual-write sidecar replaying engine writes into TimescaleDB.
 
 The sidecar subscribes to the engine's write-tee bus subject (a
-dedicated ``augur.writes.*`` channel the engine fans off during the
+dedicated `augur.writes.*` channel the engine fans off during the
 dual-write window) and replays every snapshot, feature, and signal
 into TimescaleDB alongside the primary DuckDB write. It maintains a
 per-table lag counter and fails the Prometheus
-``augur_dual_write_lag_seconds`` gauge past the configured threshold.
+`augur_dual_write_lag_seconds` gauge past the configured threshold.
 
 Usage:
 
     uv run python scripts/dual_write_sidecar.py \\
         --lag-alert-seconds 10 --bus-backend redis
 
-Rollback-friendly: if operators flip ``storage.toml`` back to DuckDB,
+Rollback-friendly: if operators flip `storage.toml` back to DuckDB,
 the sidecar observes no writes on the tee subject and sits idle until
 the flag flips again. It never modifies DuckDB; it only reads the tee
 and writes the mirror copy.
