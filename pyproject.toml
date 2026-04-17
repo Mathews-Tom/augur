@@ -59,10 +59,6 @@ mypy_path = ["src/augur_signals", "src/augur_labels", "src/augur_format"]
 namespace_packages = true
 explicit_package_bases = true
 
-[[tool.mypy.overrides]]
-module = ["structlog.*"]
-ignore_missing_imports = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
