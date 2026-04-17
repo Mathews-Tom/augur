@@ -47,6 +47,9 @@ jobs:
       - name: Schema export check
         run: uv run python scripts/export_schemas.py --check
 
+      - name: datetime.now() guard in detector modules
+        run: uv run python scripts/lint_detector_now.py
+
       - name: Tests with coverage
         run: uv run pytest --cov=src --cov-report=xml --cov-fail-under=80
 

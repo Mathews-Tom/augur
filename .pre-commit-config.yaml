@@ -38,3 +38,9 @@ repos:
         entry: bash -c 'uv run python scripts/export_schemas.py --check'
         language: system
         pass_filenames: false
+
+      - id: datetime-now-in-detectors
+        name: Guard against datetime.now() in detector modules
+        entry: bash -c 'uv run python scripts/lint_detector_now.py'
+        language: system
+        pass_filenames: false
