@@ -22,4 +22,4 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["augur_format"]
-include = ["augur_format/**/*.j2"]
+include = ["augur_format/**/*.j2", "augur_format/**/*.txt"]
