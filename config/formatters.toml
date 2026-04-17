@@ -1,0 +1,26 @@
+# Deterministic formatter configuration. Schema mirrors phase-3 §12.2
+# verbatim; each block maps onto a Pydantic config sub-model in
+# augur_format._config. A malformed file fails at startup via
+# augur_signals._config.load_config.
+
+[json]
+float_decimals = 6
+timestamp_format = "iso_z"
+
+[markdown]
+template_dir = "src/augur_format/augur_format/deterministic/templates"
+trim_blocks = true
+lstrip_blocks = true
+
+[webhook]
+initial_retry_delay_seconds = 1
+max_retry_delay_seconds = 60
+max_retries = 5
+delivery_timeout_seconds = 10
+
+[websocket]
+bind = "0.0.0.0"
+port = 8765
+heartbeat_interval_seconds = 30
+heartbeat_timeout_seconds = 90
+per_connection_buffer = 64
