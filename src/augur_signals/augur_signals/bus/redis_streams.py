@@ -100,6 +100,15 @@ class RedisStreamsBus(EventBus):
     async def subscribe(
         self, subject_pattern: str, consumer_group: str
     ) -> AsyncIterator[BusMessage]:
+        """At-least-once delivery via XREADGROUP / XACK.
+
+        The previous message is acked at the *start* of the next loop
+        iteration rather than immediately after yield, so a consumer
+        that breaks out of the async-for leaves the in-flight message
+        pending for redelivery on restart. Clean termination acks
+        every message the consumer iterated past; crashes and breaks
+        only ack messages whose processing already completed.
+        """
         if self._client is None:
             raise BusError("RedisStreamsBus.connect() must be called before subscribe()")
         group = f"{self.config.consumer_group_prefix}.{consumer_group}"
@@ -109,10 +118,11 @@ class RedisStreamsBus(EventBus):
         except Exception as exc:
             if "BUSYGROUP" not in str(exc):
                 raise BusError(f"Failed to create consumer group {group}") from exc
-        # Redis consumer groups persist across restarts; nothing to
-        # tear down in a finally block. The loop exits on cancellation
-        # propagated from the caller's async-for.
+        pending_ack_id: bytes | str | None = None
         while True:
+            if pending_ack_id is not None:
+                await self._client.xack(subject_pattern, group, pending_ack_id)
+                pending_ack_id = None
             entries = await self._client.xreadgroup(
                 groupname=group,
                 consumername=consumer,
@@ -121,14 +131,16 @@ class RedisStreamsBus(EventBus):
                 block=self.config.block_ms,
             )
             if not entries:
-                # Yield control so an outer cancellation can fire.
                 await asyncio.sleep(0)
                 continue
             for _stream, messages in entries:
                 for msg_id, fields in messages:
                     message = _decode_message(subject_pattern, fields)
                     yield message
-                    await self._client.xack(subject_pattern, group, msg_id)
+                    # Defer the ack to the next iteration so a consumer
+                    # that breaks mid-iteration leaves this message
+                    # pending for redelivery.
+                    pending_ack_id = msg_id
 
 
 class RedisLock(DistributedLock):

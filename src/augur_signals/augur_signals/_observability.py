@@ -101,6 +101,14 @@ class _OTelTracer:
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
         from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 
+        # OTel refuses to replace the global TracerProvider once set
+        # and logs a silent "Overriding" warning. Reuse an existing
+        # provider on re-configuration (common across test cases)
+        # rather than fighting the SDK's global state.
+        current = trace.get_tracer_provider()
+        if isinstance(current, TracerProvider):
+            self._tracer = trace.get_tracer("augur")
+            return
         resource = Resource.create({SERVICE_NAME: service_name})
         provider = TracerProvider(resource=resource, sampler=TraceIdRatioBased(sampling_ratio))
         provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))

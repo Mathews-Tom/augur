@@ -1,13 +1,15 @@
 # Stateless worker deployments.
 #
-# Feature, detector, manipulation, calibration, and context_format
-# workers scale horizontally. HPA blocks attach to each Deployment
-# below with CPU + bus-consume-lag targets (see hpa.yaml).
+# manipulation / calibration / context_format are stateless and scale
+# freely. feature / detector workers shard by market_id modulo
+# REPLICA_COUNT — resizing their pools requires an operator edit of
+# `replicas` and a rolling restart so the new count propagates to
+# every REPLICA_COUNT env var. HPA does NOT manage these pools;
+# dynamic replica count would silently drop shards.
 #
-# Per-market sharding for feature/detector is handled by the
-# augur_signals.workers.sharding module; the worker reads
-# REPLICA_COUNT from the environment and its pod ordinal from
-# $POD_NAME.
+# Every deployment exposes /metrics on port 9090 and is covered by
+# a TCP readiness/liveness probe so rolling updates admit traffic
+# only after the listener is live.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,6 +52,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 250m
@@ -103,6 +115,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 250m
@@ -146,6 +168,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 100m
@@ -189,6 +221,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 100m
@@ -232,6 +274,16 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
           resources:
             requests:
               cpu: 200m

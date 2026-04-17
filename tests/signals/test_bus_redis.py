@@ -49,11 +49,8 @@ async def test_redis_streams_publish_and_subscribe_roundtrip(
 async def test_redis_streams_xack_marks_processed_entries(
     redis_client: fakeredis.aioredis.FakeRedis,
 ) -> None:
-    """XACK fires after the consumer iterates past a yielded message.
-
-    Consumers that break out of the subscribe iterator without advancing
-    past a yielded message leave it pending so Redis redelivers on
-    restart (at-least-once semantics).
+    """Ack is deferred to the next iteration; break leaves the current
+    yielded message pending for redelivery (at-least-once semantics).
     """
     config = RedisBody(url_env="IGNORED", stream_max_length=100, block_ms=50)
     bus = RedisStreamsBus(config, client=redis_client)
@@ -62,24 +59,24 @@ async def test_redis_streams_xack_marks_processed_entries(
     subject = "augur.flagged_signals"
     await bus.publish(BusMessage(subject=subject, payload=b"one"))
     await bus.publish(BusMessage(subject=subject, payload=b"two"))
+    await bus.publish(BusMessage(subject=subject, payload=b"three"))
 
     received: list[bytes] = []
 
     async def consume() -> None:
         async for msg in bus.subscribe(subject, "test-group"):
             received.append(msg.payload)
-            if len(received) >= 2:
-                # Breaking after iterating past msg #1 means #1 is
-                # acked; #2 is the currently-yielded message whose ack
-                # follows only if the consumer iterates once more.
+            if len(received) >= 3:
+                # Break at msg #3. Expected: #1 and #2 were acked at
+                # the top of the iterations that yielded #2 and #3
+                # respectively. #3 stays pending because we broke
+                # before re-entering the loop.
                 break
 
     await asyncio.wait_for(consume(), timeout=2.0)
 
     summary = await redis_client.xpending(subject, "augur.test-group")
     pending = summary.get("pending") if isinstance(summary, dict) else summary[0]
-    # The first message is acked; the second remains pending because
-    # the consumer broke out before iterating past it.
     assert pending == 1
 
     await bus.close()

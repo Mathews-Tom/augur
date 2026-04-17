@@ -158,6 +158,8 @@ async def test_nats_close_drains_client(client: _FakeClient) -> None:
 
 @pytest.mark.asyncio
 async def test_nats_subscribe_acks_yielded_messages(client: _FakeClient) -> None:
+    """Ack is deferred to the next iteration; break leaves the last
+    yielded message un-acked for JetStream redelivery."""
     config = NATSBody()
     bus = NATSBus(config, client=client)  # type: ignore[arg-type]
     await bus.connect()
@@ -171,7 +173,8 @@ async def test_nats_subscribe_acks_yielded_messages(client: _FakeClient) -> None
         if count >= 3:
             break
 
-    # The first two messages were acked in the iterations past them;
-    # the third is the yielded message at the break point (no ack).
     acks = [m._acked for m in client._js.published]
+    # msg-a acked at the iteration that yielded msg-b; msg-b acked at
+    # the iteration that yielded msg-c; msg-c pending because the
+    # consumer broke before the next iteration.
     assert acks == [True, True, False]
