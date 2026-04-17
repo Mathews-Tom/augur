@@ -32,7 +32,7 @@ jobs:
 
       - name: LLM-import guard
         run: |
-          if grep -rE "import (anthropic|openai|ollama|llama)" src/augur_signals/; then
+          if grep -rE "^[[:space:]]*(from|import)[[:space:]]+(anthropic|openai|ollama|llama|llama_index|langchain|langchain_[a-z_]+|transformers|huggingface_hub|sentence_transformers|vllm|mistralai|cohere|google\.generativeai|replicate)([[:space:]]|\.|$)" src/augur_signals/; then
             echo "LLM import in augur_signals package"
             exit 1
           fi

@@ -6,21 +6,18 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
-    hooks:
-      - id: mypy
-        args: [--strict]
-        additional_dependencies:
-          - pydantic>=2.7
-          - structlog>=24.0
-        files: ^src/
-
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy --strict (workspace env)
+        entry: uv run mypy --strict src/
+        language: system
+        types: [python]
+        pass_filenames: false
+
       - id: llm-import-guard
         name: Guard against LLM imports in augur_signals
-        entry: bash -c 'if grep -rE "import (anthropic|openai|ollama|llama)" src/augur_signals/; then echo "LLM import in src/augur_signals/ is forbidden by docs/architecture/system-design.md"; exit 1; fi'
+        entry: bash -c 'if grep -rE "^[[:space:]]*(from|import)[[:space:]]+(anthropic|openai|ollama|llama|llama_index|langchain|langchain_[a-z_]+|transformers|huggingface_hub|sentence_transformers|vllm|mistralai|cohere|google\.generativeai|replicate)([[:space:]]|\.|$)" src/augur_signals/; then echo "LLM import in src/augur_signals/ is forbidden by docs/architecture/system-design.md"; exit 1; fi'
         language: system
         pass_filenames: false
 
