@@ -1,0 +1,11 @@
+{% extends "_base.md.j2" %}
+
+{% block extra_summary %}
+## Detector-Specific Detail
+
+- Volume z-score: {{ "%.3f" | format(signal.raw_features.get("z_score", 0.0)) }}
+- EWMA baseline: {{ "%.3f" | format(signal.raw_features.get("ewma_mean", 1.0)) }}
+- Volume ratio (1h): {{ "%.3f" | format(signal.raw_features.get("volume_ratio_1h", 1.0)) }}
+- Calibration provenance: {{ signal.raw_features.calibration_provenance }}
+
+{% endblock %}

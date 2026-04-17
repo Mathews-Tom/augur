@@ -1,0 +1,12 @@
+{% extends "_base.md.j2" %}
+
+{% block extra_summary %}
+## Detector-Specific Detail
+
+- Spearman rho (current window): {{ "%.3f" | format(signal.raw_features.get("spearman_rho", 0.0)) }}
+- Historical Fisher-z: {{ "%.3f" | format(signal.raw_features.get("historical_z", 0.0)) }}
+- BH-FDR p-value: {{ "%.4f" | format(signal.raw_features.get("p_value", 1.0)) }}
+- Related market: `{{ signal.raw_features.get("related_market_id", "") }}`
+- Calibration provenance: {{ signal.raw_features.calibration_provenance }}
+
+{% endblock %}

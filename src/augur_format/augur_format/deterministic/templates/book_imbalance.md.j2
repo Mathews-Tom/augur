@@ -1,0 +1,10 @@
+{% extends "_base.md.j2" %}
+
+{% block extra_summary %}
+## Detector-Specific Detail
+
+- Bid/ask depth ratio: {{ "%.3f" | format(signal.raw_features.get("bid_ask_ratio", 0.5)) }}
+- Total liquidity (USD): {{ signal.raw_features.get("liquidity", 0) | int }}
+- Calibration provenance: {{ signal.raw_features.calibration_provenance }}
+
+{% endblock %}

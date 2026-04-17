@@ -1,0 +1,11 @@
+{% extends "_base.md.j2" %}
+
+{% block extra_summary %}
+## Detector-Specific Detail
+
+- Positive CUSUM: {{ "%.3f" | format(signal.raw_features.get("positive_cusum", 0.0)) }}
+- Negative CUSUM: {{ "%.3f" | format(signal.raw_features.get("negative_cusum", 0.0)) }}
+- Threshold: {{ "%.3f" | format(signal.raw_features.get("threshold", 0.0)) }}
+- Calibration provenance: {{ signal.raw_features.calibration_provenance }}
+
+{% endblock %}

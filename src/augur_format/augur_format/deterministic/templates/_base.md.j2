@@ -1,0 +1,53 @@
+# {{ signal.signal_type | replace("_", " ") | title }} on {{ signal.market_id }}
+
+**Severity:** {{ severity }}
+**Confidence:** {{ "%.2f" | format(signal.confidence) }}
+**Liquidity tier:** {{ signal.liquidity_tier }}
+**Detected:** {{ signal.detected_at.isoformat() }}
+
+{% block extra_summary %}{% endblock %}
+## Signal Summary
+
+- Market: {{ market_question }}
+- Resolves: {{ closes_at.isoformat() }}
+- Resolution source: {{ resolution_source }}
+- Movement magnitude: {{ "%.3f" | format(signal.magnitude) }} (direction: {{ signal.direction }})
+- Detection window: {{ (signal.window_seconds // 60) }} minutes
+
+## Resolution Criteria
+
+> {{ resolution_criteria }}
+
+## Related Markets
+
+{% if related_markets %}
+{% for rm in related_markets %}
+- **{{ rm.market_id }}** ({{ rm.relationship_type }}, strength {{ "%.2f" | format(rm.relationship_strength) }}): price {{ "%.3f" | format(rm.current_price) }} (24h delta {{ "%.3f" | format(rm.delta_24h) }}, volume {{ rm.volume_24h | int }})
+{% endfor %}
+{% else %}
+No related markets in the curated taxonomy.
+{% endif %}
+
+## Investigation Prompts
+
+{% if investigation_prompts %}
+{% for p in investigation_prompts %}
+- {{ p }}
+{% endfor %}
+{% else %}
+No investigation prompts configured for this (signal_type, category) tuple.
+{% endif %}
+{% if signal.manipulation_flags %}
+
+## Manipulation Flags
+
+The following manipulation signatures matched this signal. Consumer suppression policy applies; see `docs/methodology/manipulation-taxonomy.md`.
+
+{% for f in signal.manipulation_flags %}
+- `{{ f }}`
+{% endfor %}
+{% endif %}
+
+---
+
+*Augur - interpretation_mode: {{ interpretation_mode }} - schema {{ schema_version }} - signal_id {{ signal.signal_id }}*

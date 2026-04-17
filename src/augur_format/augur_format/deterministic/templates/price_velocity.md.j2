@@ -1,0 +1,9 @@
+{% extends "_base.md.j2" %}
+
+{% block extra_summary %}
+## Detector-Specific Detail
+
+- Posterior P(changepoint within last 5 obs): {{ "%.3f" | format(signal.raw_features.posterior_p_change|default(signal.raw_features.get("posterior_p_change", 0.0))) }}
+- Calibration provenance: {{ signal.raw_features.calibration_provenance }}
+
+{% endblock %}
