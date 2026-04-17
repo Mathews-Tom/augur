@@ -263,7 +263,28 @@ class DuckDBStore:
             query,
             [*market_ids, window_start, window_end],
         ).fetchall()
-        return [_row_to_signal(row) for row in rows]
+        signals = [_row_to_signal(row) for row in rows]
+        if not signals:
+            return signals
+        # Rehydrate manipulation flags from the side table so downstream
+        # backtests see the same flag set a consumer would have received
+        # at publish time.
+        signal_ids = [s.signal_id for s in signals]
+        flag_placeholders = ", ".join(["?"] * len(signal_ids))
+        flag_query = (
+            f"SELECT signal_id, flag FROM manipulation_flags "
+            f"WHERE signal_id IN ({flag_placeholders})"
+        )
+        flag_rows = self._conn.execute(flag_query, list(signal_ids)).fetchall()
+        flags_by_signal: dict[str, list[ManipulationFlag]] = {}
+        for signal_id, flag_value in flag_rows:
+            flags_by_signal.setdefault(signal_id, []).append(ManipulationFlag(flag_value))
+        return [
+            signal.model_copy(
+                update={"manipulation_flags": flags_by_signal.get(signal.signal_id, [])}
+            )
+            for signal in signals
+        ]
 
     # --- lifecycle ------------------------------------------------------
 

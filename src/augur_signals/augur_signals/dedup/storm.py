@@ -56,6 +56,7 @@ class StormController:
         self._trigger_rate = _RateTracker(config.trigger_signal_rate_window_sec)
         self._recovery_rate = _RateTracker(config.recovery_signal_rate_window_sec)
         self._low_depth_since: datetime | None = None
+        self._high_depth_since: datetime | None = None
 
     @property
     def in_storm(self) -> bool:
@@ -76,7 +77,18 @@ class StormController:
                 self._trigger_rate.rate_per_second() > self._config.trigger_signal_rate_per_sec
             )
             depth_exceeded = depth_pct > self._config.trigger_queue_depth_pct
-            if rate_exceeded or depth_exceeded:
+            # Depth trigger requires sustainment per
+            # docs/architecture/deduplication-and-storms.md §Storm Detection.
+            if depth_exceeded:
+                if self._high_depth_since is None:
+                    self._high_depth_since = now
+                sustained = (
+                    now - self._high_depth_since
+                ).total_seconds() >= self._config.trigger_queue_depth_window_sec
+            else:
+                self._high_depth_since = None
+                sustained = False
+            if rate_exceeded or sustained:
                 self._enter_storm(now)
         else:
             rate_low = (
@@ -102,11 +114,13 @@ class StormController:
         self._started_at = now
         self._ended_at = None
         self._low_depth_since = None
+        self._high_depth_since = None
 
     def _exit_storm(self, now: datetime) -> None:
         self._in_storm = False
         self._ended_at = now
         self._low_depth_since = None
+        self._high_depth_since = None
 
 
 DropPolicy = Literal["lifo", "reject"]

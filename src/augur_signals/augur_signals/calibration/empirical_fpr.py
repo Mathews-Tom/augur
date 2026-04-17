@@ -41,8 +41,8 @@ def compute_empirical_fpr(
     market_id: str,
     detected_at_values: Sequence[datetime],
     event_occurred_at_values: Sequence[datetime],
+    now: datetime,
     lead_window: timedelta = timedelta(hours=24),
-    now: datetime | None = None,
     label_protocol_version: str = "v0",
 ) -> FPRRecord:
     """FP / (FP + TN) per docs/methodology/labeling-protocol.md §True Positive.
@@ -50,7 +50,10 @@ def compute_empirical_fpr(
     A detector firing at ``t_signal`` is a true positive if some labeled
     event for the same market occurred in ``[t_signal, t_signal + lead_window]``.
     All other firings are false positives; every observation window
-    without a label in range contributes to the TN denominator.
+    without a label in range contributes to the TN denominator. ``now``
+    is a required parameter so every FPRRecord's computed_at is
+    deterministic across backtest replays — matching the pipeline-wide
+    "now as a parameter" invariant.
     """
     total_signals = len(detected_at_values)
     if total_signals == 0:
@@ -59,12 +62,9 @@ def compute_empirical_fpr(
             market_id=market_id,
             fpr=0.0,
             sample_size=0,
-            computed_at=now or datetime.now(tz=event_occurred_at_values[0].tzinfo)
-            if event_occurred_at_values
-            else datetime(2026, 1, 1).astimezone(),
+            computed_at=now,
             label_protocol_version=label_protocol_version,
         )
-
     true_positives = 0
     for t_signal in detected_at_values:
         window_end = t_signal + lead_window
@@ -80,6 +80,6 @@ def compute_empirical_fpr(
         market_id=market_id,
         fpr=fpr,
         sample_size=sample_size,
-        computed_at=now if now is not None else detected_at_values[-1],
+        computed_at=now,
         label_protocol_version=label_protocol_version,
     )

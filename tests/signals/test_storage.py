@@ -94,7 +94,7 @@ def test_snapshots_in_window(store: DuckDBStore) -> None:
 
 
 @pytest.mark.unit
-def test_insert_signal_persists_manipulation_flags(store: DuckDBStore) -> None:
+def test_insert_signal_round_trips_manipulation_flags(store: DuckDBStore) -> None:
     sig = _signal()
     store.insert_signal(sig)
     recovered = store.signals_in_window(
@@ -105,6 +105,9 @@ def test_insert_signal_persists_manipulation_flags(store: DuckDBStore) -> None:
     assert len(recovered) == 1
     assert recovered[0].signal_id == sig.signal_id
     assert recovered[0].confidence == pytest.approx(0.75)
+    # Flags persist to the side table and rehydrate on read so backtest
+    # code sees the same flag set a consumer received at publish time.
+    assert recovered[0].manipulation_flags == sig.manipulation_flags
 
 
 @pytest.mark.unit

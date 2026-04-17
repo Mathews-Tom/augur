@@ -96,6 +96,7 @@ def test_liquidity_banding_crosses_thresholds() -> None:
 
 @pytest.mark.unit
 def test_empirical_fpr_identifies_true_positives() -> None:
+    now = datetime(2026, 3, 16, 0, 0, tzinfo=UTC)
     signals = [datetime(2026, 3, 15, 12, 0, tzinfo=UTC)]
     events = [datetime(2026, 3, 15, 14, 0, tzinfo=UTC)]
     record = compute_empirical_fpr(
@@ -103,17 +104,22 @@ def test_empirical_fpr_identifies_true_positives() -> None:
         "m",
         signals,
         events,
+        now=now,
         lead_window=timedelta(hours=24),
     )
     assert record.fpr == pytest.approx(0.0)
     assert record.sample_size == 1
+    assert record.computed_at == now
 
 
 @pytest.mark.unit
 def test_empirical_fpr_flags_unlabeled_signals() -> None:
+    now = datetime(2026, 3, 16, 0, 0, tzinfo=UTC)
     signals = [datetime(2026, 3, 15, 12, 0, tzinfo=UTC)]
     events: list[datetime] = []
-    record = compute_empirical_fpr("d", "m", signals, events, lead_window=timedelta(hours=24))
+    record = compute_empirical_fpr(
+        "d", "m", signals, events, now=now, lead_window=timedelta(hours=24)
+    )
     assert record.fpr == pytest.approx(1.0)
 
 
