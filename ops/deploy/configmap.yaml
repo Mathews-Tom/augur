@@ -1,0 +1,25 @@
+# Phase 5 operational config.
+#
+# Populate `config.*.toml` entries from the repository `config/` files
+# at deploy time: `kubectl create configmap augur-config --from-file=config/`
+# or sync via Kustomize/Helm. The worker image mounts this ConfigMap at
+# /app/config, matching the Dockerfile's `AUGUR_CONFIG_DIR`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: augur-config
+  namespace: augur
+data:
+  # Populated from the repository `config/` directory at deploy time.
+  # Each key matches the TOML filename the worker loads at startup.
+  storage.toml: ""
+  bus.toml: ""
+  observability.toml: ""
+  polling.toml: ""
+  detectors.toml: ""
+  dedup.toml: ""
+  formatters.toml: ""
+  consumers.toml: ""
+  llm.toml: ""
+  markets.toml: ""
+  forbidden_tokens.toml: ""

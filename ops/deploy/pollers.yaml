@@ -1,0 +1,121 @@
+# Per-platform pollers.
+#
+# One Deployment per platform, replicas=1 because each poller owns the
+# adaptive-polling budget for its platform (see .docs/phase-5-scaling.md §3).
+# The pollers are stateless — failure triggers a re-schedule, not failover.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-poller-polymarket
+  namespace: augur
+  labels:
+    app.kubernetes.io/name: augur-poller
+    app.kubernetes.io/component: poller
+    app.kubernetes.io/platform: polymarket
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: augur-poller
+      app.kubernetes.io/platform: polymarket
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: augur-poller
+        app.kubernetes.io/component: poller
+        app.kubernetes.io/platform: polymarket
+    spec:
+      containers:
+        - name: poller
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args:
+            - augur_signals.workers.poller
+            - --platform
+            - polymarket
+            - --replica-id
+            - $(POD_NAME)
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-poller-kalshi
+  namespace: augur
+  labels:
+    app.kubernetes.io/name: augur-poller
+    app.kubernetes.io/component: poller
+    app.kubernetes.io/platform: kalshi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: augur-poller
+      app.kubernetes.io/platform: kalshi
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: augur-poller
+        app.kubernetes.io/component: poller
+        app.kubernetes.io/platform: kalshi
+    spec:
+      containers:
+        - name: poller
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args:
+            - augur_signals.workers.poller
+            - --platform
+            - kalshi
+            - --replica-id
+            - $(POD_NAME)
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config

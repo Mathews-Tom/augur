@@ -1,0 +1,44 @@
+# Service endpoints.
+#
+# augur-websocket: public endpoint for downstream consumers.
+# augur-dedup / augur-llm: headless services backing the singleton
+# StatefulSets (required for stable DNS per replica).
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: augur-websocket
+  namespace: augur
+spec:
+  selector:
+    app.kubernetes.io/component: context-format
+  ports:
+    - name: ws
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: augur-dedup
+  namespace: augur
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: dedup
+  ports:
+    - name: metrics
+      port: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: augur-llm
+  namespace: augur
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: llm
+  ports:
+    - name: metrics
+      port: 9090

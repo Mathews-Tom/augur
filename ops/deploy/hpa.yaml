@@ -1,0 +1,80 @@
+# HorizontalPodAutoscalers for the stateless worker deployments.
+#
+# Scale on CPU utilization for simple workloads and on a custom
+# bus-consume-lag metric (see observability stack) for the
+# shard-sensitive feature/detector workers. Singletons do NOT
+# autoscale — their replica count is fixed at 2 (active + passive).
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: augur-feature
+  namespace: augur
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: augur-feature
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Pods
+      pods:
+        metric:
+          name: augur_bus_consume_lag_seconds
+        target:
+          type: AverageValue
+          averageValue: "3"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: augur-detector
+  namespace: augur
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: augur-detector
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Pods
+      pods:
+        metric:
+          name: augur_bus_consume_lag_seconds
+        target:
+          type: AverageValue
+          averageValue: "3"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: augur-context-format
+  namespace: augur
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: augur-context-format
+  minReplicas: 4
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65

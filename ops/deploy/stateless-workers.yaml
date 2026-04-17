@@ -1,0 +1,245 @@
+# Stateless worker deployments.
+#
+# Feature, detector, manipulation, calibration, and context_format
+# workers scale horizontally. HPA blocks attach to each Deployment
+# below with CPU + bus-consume-lag targets (see hpa.yaml).
+#
+# Per-market sharding for feature/detector is handled by the
+# augur_signals.workers.sharding module; the worker reads
+# REPLICA_COUNT from the environment and its pod ordinal from
+# $POD_NAME.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-feature
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: feature
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: feature
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: feature
+    spec:
+      containers:
+        - name: feature
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args:
+            - augur_signals.workers.feature
+            - --shard
+            - $(REPLICA_INDEX)/$(REPLICA_COUNT)
+          env:
+            - name: REPLICA_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+            - name: REPLICA_COUNT
+              value: "2"
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-detector
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: detector
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: detector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: detector
+    spec:
+      containers:
+        - name: detector
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args:
+            - augur_signals.workers.detector
+            - --shard
+            - $(REPLICA_INDEX)/$(REPLICA_COUNT)
+          env:
+            - name: REPLICA_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+            - name: REPLICA_COUNT
+              value: "2"
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-manipulation
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: manipulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: manipulation
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: manipulation
+    spec:
+      containers:
+        - name: manipulation
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args: [augur_signals.workers.manipulation]
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-calibration
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: calibration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: calibration
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: calibration
+    spec:
+      containers:
+        - name: calibration
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args: [augur_signals.workers.calibration]
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: augur-context-format
+  namespace: augur
+  labels:
+    app.kubernetes.io/component: context-format
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: context-format
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: context-format
+    spec:
+      containers:
+        - name: context-format
+          image: ghcr.io/aetherforge/augur:latest
+          command: ["python", "-m"]
+          args: [augur_signals.workers.context_format]
+          envFrom:
+            - secretRef:
+                name: augur-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          ports:
+            - name: metrics
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: augur-config
