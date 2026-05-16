@@ -34,6 +34,7 @@ from augur_signals.detectors.regime_shift import RegimeShiftDetector
 from augur_signals.detectors.registry import DetectorRegistry
 from augur_signals.detectors.volume_spike import VolumeSpikeDetector
 from augur_signals.engine import Engine
+from augur_signals.features._config import FeaturePipelineConfig
 from augur_signals.features.pipeline import FeaturePipeline
 from augur_signals.ingestion.base import AbstractPoller, RawMarketData, RawTrade
 from augur_signals.ingestion.kalshi import KalshiPoller
@@ -93,16 +94,21 @@ class RuntimeConfig:
 class EngineRuntime:
     engine: Engine
     feature_pipeline: FeaturePipeline
+    feature_config: FeaturePipelineConfig
+    storage_label: str
     markets: list[MarketEntry]
 
 
 @dataclass(frozen=True, slots=True)
 class CycleSummary:
+    storage: str
     active_markets: int
+    platforms: tuple[str, ...]
     snapshots: int
     trades: int
     features: int
     signals: int
+    feature_warmup_size: int
 
 
 def _parse_args(argv: Sequence[str]) -> RuntimeConfig:
@@ -192,6 +198,7 @@ def _build_runtime(config: RuntimeConfig) -> EngineRuntime:
     storage_config = load_config(config.config_dir / "storage.toml", StorageConfig)
     store = make_duckdb_store(storage_config)
     store.initialize()
+    feature_config = FeaturePipelineConfig()
     taxonomy = MarketTaxonomy.from_toml(config.config_dir / "markets.toml")
     resolver = RelatedMarketResolver(taxonomy, store)
     prompt_library = InvestigationPromptLibrary.from_toml(
@@ -206,7 +213,19 @@ def _build_runtime(config: RuntimeConfig) -> EngineRuntime:
         bus=InProcessAsyncBus(capacity=dedup_config.dedup.bus.queue_capacity),
         assembler=ContextAssembler(store, resolver, prompt_library, category_by_market),
     )
-    return EngineRuntime(engine, FeaturePipeline(), active)
+    return EngineRuntime(
+        engine=engine,
+        feature_pipeline=FeaturePipeline(feature_config),
+        feature_config=feature_config,
+        storage_label=_storage_label(storage_config),
+        markets=active,
+    )
+
+
+def _storage_label(config: StorageConfig) -> str:
+    if config.backend.kind == "duckdb":
+        return f"duckdb:{config.backend.duckdb_path}"
+    return f"timescaledb:${config.backend.timescale_url_env}"
 
 
 def _required_platforms(markets: Sequence[MarketEntry]) -> set[str]:
@@ -319,11 +338,14 @@ async def _run(config: RuntimeConfig) -> None:
             if config.once:
                 _emit_once_summary(
                     _summarize_cycle(
+                        storage=runtime.storage_label,
                         active_markets=len(runtime.markets),
+                        platforms=_platform_counts(runtime.markets),
                         snapshots=snapshots,
                         trades=trades,
                         features=features,
                         signal_count=len(contexts),
+                        feature_warmup_size=runtime.feature_config.warmup_size,
                     )
                 )
                 return
@@ -344,32 +366,50 @@ def _ingest_features(
 
 def _summarize_cycle(
     *,
+    storage: str,
     active_markets: int,
+    platforms: tuple[str, ...],
     snapshots: Sequence[MarketSnapshot],
     trades: dict[str, list[RawTrade]],
     features: dict[str, FeatureVector],
     signal_count: int,
+    feature_warmup_size: int,
 ) -> CycleSummary:
     return CycleSummary(
+        storage=storage,
         active_markets=active_markets,
+        platforms=platforms,
         snapshots=len(snapshots),
         trades=sum(len(market_trades) for market_trades in trades.values()),
         features=len(features),
         signals=signal_count,
+        feature_warmup_size=feature_warmup_size,
     )
+
+
+def _platform_counts(markets: Sequence[MarketEntry]) -> tuple[str, ...]:
+    counts: dict[str, int] = {}
+    for market in markets:
+        counts[market.platform] = counts.get(market.platform, 0) + 1
+    return tuple(f"{platform}:{count}" for platform, count in sorted(counts.items()))
 
 
 def _emit_once_summary(summary: CycleSummary) -> None:
-    print(
-        "augur run summary: "
-        f"active_markets={summary.active_markets} "
-        f"snapshots={summary.snapshots} "
-        f"trades={summary.trades} "
-        f"features={summary.features} "
-        f"signals={summary.signals}",
-        file=sys.stderr,
-        flush=True,
-    )
+    lines = [
+        f"augur run summary: status=ok mode=once storage={summary.storage}",
+        "  markets: "
+        f"active={summary.active_markets} "
+        f"platforms={','.join(summary.platforms)} "
+        f"snapshots={summary.snapshots}",
+        f"  outputs: trades={summary.trades} features={summary.features} signals={summary.signals}",
+    ]
+    if summary.features < summary.active_markets:
+        lines.append(
+            "  note: feature buffers are still warming; "
+            f"default warmup is {summary.feature_warmup_size} observations per market, "
+            "and --once starts a fresh in-memory buffer"
+        )
+    print("\n".join(lines), file=sys.stderr, flush=True)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

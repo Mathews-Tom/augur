@@ -149,16 +149,56 @@ def test_once_summary_counts_cycle_outputs(capsys: pytest.CaptureFixture[str]) -
     )
 
     summary = module._summarize_cycle(
+        storage="duckdb:data/augur.duckdb",
         active_markets=2,
+        platforms=("polymarket:2",),
         snapshots=[snapshot],
         trades={"crypto-market": [trade], "macro-market": []},
         features={},
         signal_count=0,
+        feature_warmup_size=50,
     )
     module._emit_once_summary(summary)
 
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == (
-        "augur run summary: active_markets=2 snapshots=1 trades=1 features=0 signals=0\n"
+        "augur run summary: status=ok mode=once storage=duckdb:data/augur.duckdb\n"
+        "  markets: active=2 platforms=polymarket:2 snapshots=1\n"
+        "  outputs: trades=1 features=0 signals=0\n"
+        "  note: feature buffers are still warming; default warmup is 50 observations per market, "
+        "and --once starts a fresh in-memory buffer\n"
     )
+
+
+@pytest.mark.unit
+def test_platform_counts_sorts_by_platform() -> None:
+    module = _load_run_engine()
+    markets = [
+        module.MarketEntry(
+            id="poly-1",
+            platform="polymarket",
+            platform_market_id="condition-id-1",
+            category="crypto_protocol",
+            active=True,
+            poll_priority="normal",
+        ),
+        module.MarketEntry(
+            id="kalshi-1",
+            platform="kalshi",
+            platform_market_id="KALSHI-1",
+            category="monetary_policy",
+            active=True,
+            poll_priority="normal",
+        ),
+        module.MarketEntry(
+            id="poly-2",
+            platform="polymarket",
+            platform_market_id="condition-id-2",
+            category="crypto_protocol",
+            active=True,
+            poll_priority="normal",
+        ),
+    ]
+
+    assert module._platform_counts(markets) == ("kalshi:1", "polymarket:2")

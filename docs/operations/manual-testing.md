@@ -78,13 +78,16 @@ PY
 Example result:
 
 ```text
-augur run summary: active_markets=12 snapshots=12 trades=4 features=0 signals=0
+augur run summary: status=ok mode=once storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=4 features=0 signals=0
+  note: feature buffers are still warming; default warmup is 50 observations per market, and --once starts a fresh in-memory buffer
 snapshots 12
 features 0
 signals 0
 ```
 
-The trade count depends on market activity during the lookback window. The zero feature and signal counts are expected for a one-cycle cold run. Run additional cycles before expecting rolling-feature output or detector emissions.
+The trade count depends on market activity during the lookback window. The zero feature and signal counts are expected for a one-cycle cold run. Run a continuous process long enough to warm the in-memory feature buffers before expecting rolling-feature output or detector emissions.
 
 ## 4. Distributed-runtime smoke stack
 
