@@ -56,7 +56,8 @@ Runtime contract:
 - Polymarket-only watchlists run without platform credentials.
 - Active Kalshi markets require `KALSHI_API_KEY`.
 - DuckDB storage is opened from `config/storage.toml`.
-- Output is deterministic canonical JSON from `augur_format.deterministic.json_feed`.
+- Signal output is deterministic canonical JSON on stdout from `augur_format.deterministic.json_feed`.
+- `--once` emits a human-readable cycle summary on stderr.
 
 Current repository state has an active Polymarket-only seed watchlist. A cold first cycle should persist snapshots and may emit no signal contexts because the feature pipeline needs market history before detectors have enough rolling state.
 
@@ -74,15 +75,16 @@ con.close()
 PY
 ```
 
-Observed result:
+Example result:
 
 ```text
+augur run summary: active_markets=12 snapshots=12 trades=4 features=0 signals=0
 snapshots 12
 features 0
 signals 0
 ```
 
-The zero feature and signal counts are expected for a one-cycle cold run. Run additional cycles before expecting rolling-feature output or detector emissions.
+The trade count depends on market activity during the lookback window. The zero feature and signal counts are expected for a one-cycle cold run. Run additional cycles before expecting rolling-feature output or detector emissions.
 
 ## 4. Distributed-runtime smoke stack
 

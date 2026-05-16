@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from augur_signals.ingestion.base import RawMarketData
+from augur_signals.ingestion.base import RawMarketData, RawTrade
+from augur_signals.models import MarketSnapshot
 
 
 def _load_run_engine() -> object:
@@ -116,3 +117,48 @@ def test_orderbook_market_id_keeps_kalshi_market_id() -> None:
     )
 
     assert module._orderbook_market_id(raw, market) == "FED-2026"
+
+
+@pytest.mark.unit
+def test_once_summary_counts_cycle_outputs(capsys: pytest.CaptureFixture[str]) -> None:
+    module = _load_run_engine()
+    snapshot = MarketSnapshot(
+        market_id="crypto-market",
+        platform="polymarket",
+        timestamp=datetime(2026, 5, 17, tzinfo=UTC),
+        last_price=0.42,
+        bid=0.41,
+        ask=0.43,
+        spread=0.02,
+        volume_24h=1000.0,
+        liquidity=500.0,
+        question="Will X happen?",
+        resolution_source=None,
+        resolution_criteria=None,
+        closes_at=None,
+        raw_json={},
+    )
+    trade = RawTrade(
+        market_id="crypto-market",
+        platform="polymarket",
+        timestamp=datetime(2026, 5, 17, tzinfo=UTC),
+        price=0.42,
+        size=10.0,
+        side="buy",
+        counterparty=None,
+    )
+
+    summary = module._summarize_cycle(
+        active_markets=2,
+        snapshots=[snapshot],
+        trades={"crypto-market": [trade], "macro-market": []},
+        features={},
+        signal_count=0,
+    )
+    module._emit_once_summary(summary)
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == (
+        "augur run summary: active_markets=2 snapshots=1 trades=1 features=0 signals=0\n"
+    )

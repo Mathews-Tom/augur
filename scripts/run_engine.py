@@ -96,6 +96,15 @@ class EngineRuntime:
     markets: list[MarketEntry]
 
 
+@dataclass(frozen=True, slots=True)
+class CycleSummary:
+    active_markets: int
+    snapshots: int
+    trades: int
+    features: int
+    signals: int
+
+
 def _parse_args(argv: Sequence[str]) -> RuntimeConfig:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -308,6 +317,15 @@ async def _run(config: RuntimeConfig) -> None:
             for context in contexts:
                 print(to_canonical_json(context).decode("utf-8"), flush=True)
             if config.once:
+                _emit_once_summary(
+                    _summarize_cycle(
+                        active_markets=len(runtime.markets),
+                        snapshots=snapshots,
+                        trades=trades,
+                        features=features,
+                        signal_count=len(contexts),
+                    )
+                )
                 return
             await asyncio.sleep(config.poll_seconds)
 
@@ -322,6 +340,36 @@ def _ingest_features(
         if feature is not None:
             features[snapshot.market_id] = feature
     return features
+
+
+def _summarize_cycle(
+    *,
+    active_markets: int,
+    snapshots: Sequence[MarketSnapshot],
+    trades: dict[str, list[RawTrade]],
+    features: dict[str, FeatureVector],
+    signal_count: int,
+) -> CycleSummary:
+    return CycleSummary(
+        active_markets=active_markets,
+        snapshots=len(snapshots),
+        trades=sum(len(market_trades) for market_trades in trades.values()),
+        features=len(features),
+        signals=signal_count,
+    )
+
+
+def _emit_once_summary(summary: CycleSummary) -> None:
+    print(
+        "augur run summary: "
+        f"active_markets={summary.active_markets} "
+        f"snapshots={summary.snapshots} "
+        f"trades={summary.trades} "
+        f"features={summary.features} "
+        f"signals={summary.signals}",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
