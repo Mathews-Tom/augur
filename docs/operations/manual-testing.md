@@ -58,13 +58,31 @@ Runtime contract:
 - DuckDB storage is opened from `config/storage.toml`.
 - Output is deterministic canonical JSON from `augur_format.deterministic.json_feed`.
 
-Current repository state still has only an inactive placeholder watchlist, so `uv run python scripts/run_engine.py --once` fails fast with:
+Current repository state has an active Polymarket-only seed watchlist. A cold first cycle should persist snapshots and may emit no signal contexts because the feature pipeline needs market history before detectors have enough rolling state.
 
-```text
-run_engine failed: config/markets.toml has no active markets
+Verified local smoke on 2026-05-17:
+
+```bash
+uv run python scripts/run_engine.py --once
+uv run python - <<'PY'
+import duckdb
+
+con = duckdb.connect("data/augur.duckdb", read_only=True)
+for table in ["snapshots", "features", "signals"]:
+    print(table, con.execute(f"select count(*) from {table}").fetchone()[0])
+con.close()
+PY
 ```
 
-Populate `config/markets.toml` before using the runner for live capture.
+Observed result:
+
+```text
+snapshots 12
+features 0
+signals 0
+```
+
+The zero feature and signal counts are expected for a one-cycle cold run. Run additional cycles before expecting rolling-feature output or detector emissions.
 
 ## 4. Distributed-runtime smoke stack
 
@@ -234,7 +252,7 @@ unset AUGUR_CONFIG_DIR AUGUR_TIMESCALE_URL AUGUR_REPLICA_ID
 
 ## 9. Known gaps
 
-- The monolith runner exists as `scripts/run_engine.py`, but the checked-in watchlist still has no active markets.
+- The checked-in watchlist is an initial Polymarket-only seed, not a production coverage set.
 - `scripts/backtest.py` and `scripts/calibrate.py` are stubs that raise `NotImplementedError`.
 - Worker entrypoints for feature / detector / manipulation / calibration / dedup / context_format / llm require the bus message-schema work described in §4 above.
 - Live failover tests against a real NATS or Redis cluster are operator-owned; CI uses dependency-injected fakes.
