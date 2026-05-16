@@ -1,6 +1,6 @@
 # Manual Testing Guide
 
-Augur has three runnable surfaces today: the test suite, the labeling CLI, and the distributed-runtime smoke stack. This document enumerates what can be exercised locally and what remains operator-wiring work.
+Augur has four runnable surfaces today: the test suite, the labeling CLI, the single-process engine runner, and the distributed-runtime smoke stack. This document enumerates what can be exercised locally and what remains operator-wiring work.
 
 ## 1. Quality gates and tests
 
@@ -40,7 +40,33 @@ uv run python scripts/label.py coverage                  # per-category coverage
 
 State persists to `labels/queue.json` and promoted rows land as partitioned Parquet under `labels/newsworthy_events/date=YYYY-MM-DD/`.
 
-## 3. Distributed-runtime smoke stack
+## 3. Single-process engine runner
+
+The monolith runner drives the existing in-process engine against configured active markets and writes canonical `SignalContext` JSON lines to stdout.
+
+```bash
+uv run python scripts/run_engine.py --help
+uv run python scripts/run_engine.py --once
+```
+
+Runtime contract:
+
+- `AUGUR_CONFIG_DIR` overrides the default `config/` directory.
+- `config/markets.toml` must contain at least one active market.
+- Polymarket-only watchlists run without platform credentials.
+- Active Kalshi markets require `KALSHI_API_KEY`.
+- DuckDB storage is opened from `config/storage.toml`.
+- Output is deterministic canonical JSON from `augur_format.deterministic.json_feed`.
+
+Current repository state still has only an inactive placeholder watchlist, so `uv run python scripts/run_engine.py --once` fails fast with:
+
+```text
+run_engine failed: config/markets.toml has no active markets
+```
+
+Populate `config/markets.toml` before using the runner for live capture.
+
+## 4. Distributed-runtime smoke stack
 
 The phase 5 compose stack brings up every external dependency the workers need: NATS JetStream, Redis, TimescaleDB, Prometheus, and (optionally) an OTel collector. Workers run as separate host processes so each one is inspectable.
 
@@ -128,7 +154,7 @@ bus = build_event_bus(cfg.bus)                        # nats or redis
 await bus.connect()
 ```
 
-## 4. Migration scripts
+## 5. Migration scripts
 
 Both scripts are fully runnable against the smoke stack once TimescaleDB is initialized.
 
@@ -162,7 +188,7 @@ uv run python scripts/dual_write_sidecar.py \
 
 Requires the engine to publish to `augur.writes` — this path is not wired in the monolith yet, so the sidecar is smoke-testable against handcrafted fixtures for now.
 
-## 5. Container build and Kubernetes
+## 6. Container build and Kubernetes
 
 ### Build the image
 
@@ -191,7 +217,7 @@ kubectl -n augur create secret generic augur-secrets \
     --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-## 6. Observability
+## 7. Observability
 
 - Prometheus: `http://localhost:9090` after compose is up. Scrapes `host.docker.internal:9091..9097`.
 - NATS admin: `http://localhost:8222/varz`.
@@ -199,16 +225,16 @@ kubectl -n augur create secret generic augur-secrets \
 - TimescaleDB: `psql $AUGUR_TIMESCALE_URL -c 'select * from timescaledb_information.hypertables'`.
 - OTel collector: spans print to the container stdout (`docker compose logs otel-collector`).
 
-## 7. Tear down
+## 8. Tear down
 
 ```bash
 docker compose -f ops/docker/compose.yaml down -v
 unset AUGUR_CONFIG_DIR AUGUR_TIMESCALE_URL AUGUR_REPLICA_ID
 ```
 
-## 8. Known gaps
+## 9. Known gaps
 
-- No end-to-end monolith launcher (`python -m augur_signals.engine` has no `__main__`). The engine is driveable from Python and from `tests/signals/test_engine_integration.py`, but no production script.
+- The monolith runner exists as `scripts/run_engine.py`, but the checked-in watchlist still has no active markets.
 - `scripts/backtest.py` and `scripts/calibrate.py` are stubs that raise `NotImplementedError`.
-- Worker entrypoints for feature / detector / manipulation / calibration / dedup / context_format / llm require the bus message-schema work described in §3 above.
+- Worker entrypoints for feature / detector / manipulation / calibration / dedup / context_format / llm require the bus message-schema work described in §4 above.
 - Live failover tests against a real NATS or Redis cluster are operator-owned; CI uses dependency-injected fakes.

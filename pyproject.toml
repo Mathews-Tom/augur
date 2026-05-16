@@ -1,7 +1,7 @@
 [project]
 name = "augur"
 version = "0.1.0"
-description = "Structured market anomaly detection for prediction markets"
+description = "Structured intelligence signals from prediction markets"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
