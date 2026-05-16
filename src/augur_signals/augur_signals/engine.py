@@ -67,6 +67,7 @@ class Engine:
             feature = features.get(snap.market_id)
             if feature is None:
                 continue
+            self._store.insert_feature(feature)
             candidates = self._registry.dispatch(snap.market_id, feature, snap, now)
             for candidate in candidates:
                 flags = self._manipulation.evaluate(

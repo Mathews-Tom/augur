@@ -66,7 +66,8 @@ def _snapshot(market_id: str, price: float, offset_seconds: int) -> MarketSnapsh
 
 @pytest.mark.asyncio
 async def test_engine_produces_contexts_after_price_shift(tmp_path: Path) -> None:
-    store = DuckDBStore(tmp_path / "engine.duckdb")
+    store_path = tmp_path / "engine.duckdb"
+    store = DuckDBStore(store_path)
     store.initialize()
     bus = InProcessAsyncBus(capacity=64)
 
@@ -133,4 +134,6 @@ async def test_engine_produces_contexts_after_price_shift(tmp_path: Path) -> Non
 
     # The price velocity detector should have fired at least once.
     assert len(contexts_emitted) >= 1
+    feature_count = store._conn.execute("SELECT count(*) FROM features").fetchone()[0]
+    assert feature_count > 0
     store.close()
