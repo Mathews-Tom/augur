@@ -1,10 +1,10 @@
 # Augur
 
-Structured market anomaly detection for prediction markets. Augur observes Polymarket and Kalshi with adaptive polling, extracts typed signals with calibrated confidence, and attaches investigation prompts drawn from a frozen library. The canonical consumer interface is a JSON schema; deterministic Markdown and a gated, opt-in LLM formatter are built on top of it.
+Augur extracts structured intelligence signals from prediction markets. It observes Polymarket and Kalshi markets, measures consensus velocity, volume, liquidity, order-book pressure, and cross-market divergence, then emits typed events for downstream agents and analysts to investigate. The canonical consumer interface is a JSON schema; deterministic Markdown and a gated, opt-in LLM formatter are secondary renderings built on top of it.
 
 Augur is not a forecaster, an arbitrage engine, or a news writer. It is a deterministic structured-signal pipeline. See `docs/foundations/overview.md` for the full product framing and `docs/foundations/non-goals.md` for what Augur explicitly does not do.
 
-Current version: **0.1.0**. Phase 1-5 scaffolding landed; runnable surfaces are the test suite, the labeling CLI, and the distributed-runtime smoke stack. See `docs/operations/manual-testing.md` for the end-to-end guide.
+Current version: **0.1.0**. The component implementation is substantial, but the live proof loop is not complete. Runnable surfaces are the test suite, the labeling CLI, the single-process engine runner, and the distributed-runtime smoke stack. An active watchlist, backtest runner, calibration runner, and real consumer feed remain follow-up work. See `docs/operations/manual-testing.md` for the current manual testing guide.
 
 ## Documentation
 
@@ -43,11 +43,11 @@ All three workspace packages — `augur-signals`, `augur-labels`, `augur-format`
 Each workspace package exposes extras for opt-in integrations. Install only what a deployment needs:
 
 ```bash
-# LLM secondary formatter (phase 4)
+# LLM secondary formatter
 uv sync --extra llm-local        # augur-format[llm-local] — Ollama client
 uv sync --extra llm-cloud        # augur-format[llm-cloud] — Anthropic SDK
 
-# Distributed runtime (phase 5)
+# Distributed runtime
 uv sync --extra bus-nats         # NATS JetStream adapter
 uv sync --extra bus-redis        # Redis Streams adapter
 uv sync --extra storage-timescale # TimescaleDB via psycopg
@@ -59,7 +59,7 @@ The dev dependency group in the repo root already pulls every extra so CI exerci
 
 ## Runnable Surfaces
 
-### Labeling CLI (phase 2)
+### Labeling CLI
 
 ```bash
 uv run python scripts/label.py --help
@@ -67,16 +67,25 @@ uv run python scripts/label.py candidates
 uv run python scripts/label.py decide <candidate-id>
 ```
 
-### Worker entrypoints (phase 5)
+### Single-process engine runner
+
+```bash
+uv run python scripts/run_engine.py --help
+uv run python scripts/run_engine.py --once
+```
+
+`scripts/run_engine.py` loads `AUGUR_CONFIG_DIR` or `config/`, opens the DuckDB store, runs the existing in-process extraction engine, and writes canonical `SignalContext` JSON to stdout. It fails fast when `config/markets.toml` has no active markets. Active Kalshi markets require `KALSHI_API_KEY`; Polymarket-only watchlists do not.
+
+### Worker entrypoints
 
 ```bash
 uv run python -m augur_signals.workers                 # catalog
 uv run python -m augur_signals.workers.poller --help   # per-kind entrypoints
 ```
 
-The `workers` package exposes bootstrap helpers (`augur_signals.workers.bootstrap`) that every `__main__` module uses for config loading, observability activation, and bus connection. Per-kind transform wiring for feature / detector / manipulation / calibration / dedup / context_format / llm requires a follow-up commit — see `docs/operations/manual-testing.md §3`.
+The `workers` package exposes bootstrap helpers (`augur_signals.workers.bootstrap`) that every `__main__` module uses for config loading, observability activation, and bus connection. Per-kind transform wiring for feature / detector / manipulation / calibration / dedup / context_format / llm requires a follow-up commit. See `docs/operations/manual-testing.md §4`.
 
-### Migration scripts (phase 5)
+### Migration scripts
 
 ```bash
 uv run python scripts/migrate_to_timescale.py backfill --from labels/snapshots_archive
@@ -120,10 +129,10 @@ augur/
 ├── pyproject.toml          # uv workspace root (v0.1.0)
 ├── uv.lock
 ├── config/                 # TOML configuration
-│   ├── bus.toml            # phase 5 — message bus backend
-│   ├── storage.toml        # phase 5 — DuckDB / TimescaleDB selector
-│   ├── observability.toml  # phase 5 — Prometheus + OTel exporters
-│   ├── llm.toml            # phase 4 — gated LLM formatter
+│   ├── bus.toml            # message bus backend
+│   ├── storage.toml        # DuckDB / TimescaleDB selector
+│   ├── observability.toml  # Prometheus + OTel exporters
+│   ├── llm.toml            # gated LLM formatter
 │   └── ...                 # polling, detectors, dedup, formatters, consumers, labeling, markets, forbidden_tokens
 ├── data/                   # market taxonomy, investigation prompts, calibration state
 ├── labels/                 # newsworthy-event labels (Parquet)
@@ -134,6 +143,7 @@ augur/
 │   ├── export_schemas.py
 │   ├── label.py            # labeling CLI wrapper
 │   ├── lint_detector_now.py
+│   ├── run_engine.py       # single-process live runner
 │   ├── migrate_to_timescale.py    # phase 5 backfill + verify
 │   └── dual_write_sidecar.py      # phase 5 tee replay
 ├── src/
