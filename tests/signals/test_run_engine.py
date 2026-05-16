@@ -47,6 +47,8 @@ poll_priority = "normal"
         once=True,
         poll_seconds=1.0,
         trade_lookback_seconds=300,
+        feature_warmup_size=50,
+        summary_every_cycles=1,
     )
 
     with pytest.raises(RuntimeError, match="no active markets"):
@@ -149,6 +151,8 @@ def test_once_summary_counts_cycle_outputs(capsys: pytest.CaptureFixture[str]) -
     )
 
     summary = module._summarize_cycle(
+        mode="once",
+        cycle=1,
         storage="duckdb:data/augur.duckdb",
         active_markets=2,
         platforms=("polymarket:2",),
@@ -158,17 +162,61 @@ def test_once_summary_counts_cycle_outputs(capsys: pytest.CaptureFixture[str]) -
         signal_count=0,
         feature_warmup_size=50,
     )
-    module._emit_once_summary(summary)
+    module._emit_summary(summary)
 
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == (
-        "augur run summary: status=ok mode=once storage=duckdb:data/augur.duckdb\n"
+        "augur run summary: status=ok mode=once cycle=1 storage=duckdb:data/augur.duckdb\n"
         "  markets: active=2 platforms=polymarket:2 snapshots=1\n"
         "  outputs: trades=1 features=0 signals=0\n"
-        "  note: feature buffers are still warming; default warmup is 50 observations per market, "
-        "and --once starts a fresh in-memory buffer\n"
+        "  note: feature buffers are still warming; "
+        "configured warmup is 50 observations per market, "
+        "estimated remaining cycles=49, and --once starts a fresh in-memory buffer\n"
     )
+
+
+@pytest.mark.unit
+def test_continuous_summary_omits_warmup_note_after_features(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load_run_engine()
+    summary = module.CycleSummary(
+        mode="continuous",
+        cycle=5,
+        storage="duckdb:data/augur.duckdb",
+        active_markets=2,
+        platforms=("polymarket:2",),
+        snapshots=2,
+        trades=0,
+        features=2,
+        signals=0,
+        feature_warmup_size=5,
+        warmup_remaining_cycles=0,
+    )
+
+    module._emit_summary(summary)
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == (
+        "augur run summary: status=ok mode=continuous cycle=5 storage=duckdb:data/augur.duckdb\n"
+        "  markets: active=2 platforms=polymarket:2 snapshots=2\n"
+        "  outputs: trades=0 features=2 signals=0\n"
+    )
+
+
+@pytest.mark.unit
+def test_parse_args_accepts_smoke_warmup_override() -> None:
+    module = _load_run_engine()
+
+    config = module._parse_args(
+        ["--once", "--feature-warmup-size", "5", "--summary-every-cycles", "3"]
+    )
+
+    assert config.once is True
+    assert config.feature_warmup_size == 5
+    assert config.summary_every_cycles == 3
 
 
 @pytest.mark.unit

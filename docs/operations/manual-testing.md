@@ -58,6 +58,8 @@ Runtime contract:
 - DuckDB storage is opened from `config/storage.toml`.
 - Signal output is deterministic canonical JSON on stdout from `augur_format.deterministic.json_feed`.
 - `--once` emits a human-readable cycle summary on stderr.
+- Continuous mode emits a human-readable cycle summary every `--summary-every-cycles` cycles.
+- `--feature-warmup-size` controls the in-memory observations per market required before features emit; keep the default for normal runs and lower it only for smoke tests.
 
 Current repository state has an active Polymarket-only seed watchlist. A cold first cycle should persist snapshots and may emit no signal contexts because the feature pipeline needs market history before detectors have enough rolling state.
 
@@ -78,16 +80,35 @@ PY
 Example result:
 
 ```text
-augur run summary: status=ok mode=once storage=duckdb:data/augur.duckdb
+augur run summary: status=ok mode=once cycle=1 storage=duckdb:data/augur.duckdb
   markets: active=12 platforms=polymarket:12 snapshots=12
   outputs: trades=4 features=0 signals=0
-  note: feature buffers are still warming; default warmup is 50 observations per market, and --once starts a fresh in-memory buffer
+  note: feature buffers are still warming; configured warmup is 50 observations per market, estimated remaining cycles=49, and --once starts a fresh in-memory buffer
 snapshots 12
 features 0
 signals 0
 ```
 
 The trade count depends on market activity during the lookback window. The zero feature and signal counts are expected for a one-cycle cold run. Run a continuous process long enough to warm the in-memory feature buffers before expecting rolling-feature output or detector emissions.
+
+Short continuous smoke:
+
+```bash
+uv run python scripts/run_engine.py --poll-seconds 10 --feature-warmup-size 5
+```
+
+Expected progression:
+
+```text
+augur run summary: status=ok mode=continuous cycle=1 storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=<market-dependent> features=0 signals=0
+  note: feature buffers are still warming; configured warmup is 5 observations per market, estimated remaining cycles=4
+...
+augur run summary: status=ok mode=continuous cycle=5 storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=<market-dependent> features=12 signals=<detector-dependent>
+```
 
 ## 4. Distributed-runtime smoke stack
 
