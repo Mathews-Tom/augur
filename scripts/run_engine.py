@@ -38,7 +38,7 @@ from augur_signals.features.pipeline import FeaturePipeline
 from augur_signals.ingestion.base import AbstractPoller, RawMarketData, RawTrade
 from augur_signals.ingestion.kalshi import KalshiPoller
 from augur_signals.ingestion.normalizer import normalize
-from augur_signals.ingestion.polymarket import PolymarketPoller
+from augur_signals.ingestion.polymarket import PolymarketPoller, primary_clob_token_id
 from augur_signals.manipulation._config import ManipulationConfig
 from augur_signals.manipulation.detector import ManipulationDetector
 from augur_signals.models import FeatureVector, MarketSnapshot
@@ -222,12 +222,12 @@ async def _fetch_cycle(
     markets: Sequence[MarketEntry],
     since: datetime,
 ) -> tuple[list[MarketSnapshot], dict[str, list[RawTrade]]]:
-    raw_by_platform = await _poll_markets_by_platform(pollers)
     snapshots: list[MarketSnapshot] = []
     trades: dict[str, list[RawTrade]] = {}
     for market in markets:
-        raw = _select_market(raw_by_platform[market.platform], market)
-        book = await pollers[market.platform].poll_orderbook(market.platform_market_id)
+        raw = await _poll_configured_market(pollers[market.platform], market)
+        book_market_id = _orderbook_market_id(raw, market)
+        book = await pollers[market.platform].poll_orderbook(book_market_id)
         snapshot = normalize(raw, book)
         snapshots.append(snapshot)
         raw_trades = await pollers[market.platform].poll_trades(market.platform_market_id, since)
@@ -244,18 +244,36 @@ async def _poll_markets_by_platform(
     return results
 
 
+async def _poll_configured_market(poller: AbstractPoller, market: MarketEntry) -> RawMarketData:
+    if isinstance(poller, PolymarketPoller):
+        raw = await poller.poll_market(market.platform_market_id)
+        return _remap_raw_market(raw, market.id)
+    raw_by_platform = await poller.poll_markets()
+    return _select_market(raw_by_platform, market)
+
+
+def _orderbook_market_id(raw: RawMarketData, market: MarketEntry) -> str:
+    if market.platform == "polymarket":
+        return primary_clob_token_id(raw)
+    return market.platform_market_id
+
+
 def _select_market(raw_markets: Sequence[RawMarketData], market: MarketEntry) -> RawMarketData:
     for raw in raw_markets:
         if raw.market_id == market.platform_market_id:
-            return RawMarketData(
-                market_id=market.id,
-                platform=raw.platform,
-                fetched_at=raw.fetched_at,
-                payload=raw.payload,
-            )
+            return _remap_raw_market(raw, market.id)
     raise RuntimeError(
         f"{market.platform} market {market.platform_market_id!r} "
         f"for configured id {market.id!r} was not returned by poll_markets"
+    )
+
+
+def _remap_raw_market(raw: RawMarketData, market_id: str) -> RawMarketData:
+    return RawMarketData(
+        market_id=market_id,
+        platform=raw.platform,
+        fetched_at=raw.fetched_at,
+        payload=raw.payload,
     )
 
 

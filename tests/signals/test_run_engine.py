@@ -74,3 +74,45 @@ def test_select_market_remaps_platform_id_to_config_id() -> None:
 
     assert selected.market_id == "macro-fed-cut"
     assert selected.payload == raw.payload
+
+
+@pytest.mark.unit
+def test_orderbook_market_id_uses_polymarket_primary_clob_token() -> None:
+    module = _load_run_engine()
+    market = module.MarketEntry(
+        id="crypto-market",
+        platform="polymarket",
+        platform_market_id="condition-id",
+        category="crypto_protocol",
+        active=True,
+        poll_priority="normal",
+    )
+    raw = RawMarketData(
+        market_id="crypto-market",
+        platform="polymarket",
+        fetched_at=datetime(2026, 5, 17, tzinfo=UTC),
+        payload={"clob_token_ids": ["yes-token", "no-token"]},
+    )
+
+    assert module._orderbook_market_id(raw, market) == "yes-token"
+
+
+@pytest.mark.unit
+def test_orderbook_market_id_keeps_kalshi_market_id() -> None:
+    module = _load_run_engine()
+    market = module.MarketEntry(
+        id="kalshi-fed",
+        platform="kalshi",
+        platform_market_id="FED-2026",
+        category="monetary_policy",
+        active=True,
+        poll_priority="normal",
+    )
+    raw = RawMarketData(
+        market_id="kalshi-fed",
+        platform="kalshi",
+        fetched_at=datetime(2026, 5, 17, tzinfo=UTC),
+        payload={},
+    )
+
+    assert module._orderbook_market_id(raw, market) == "FED-2026"
