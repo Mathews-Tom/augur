@@ -3,17 +3,141 @@
 # investigation-prompt library, and an initial polling priority.
 #
 # Schema is documented in docs/architecture/system-design.md
-# §config/markets.toml. Category must match a category in
-# docs/contracts/consumer-registry.md §Routing; markets with unknown
+# section config/markets.toml. Category must match a category in
+# docs/contracts/consumer-registry.md section Routing; markets with unknown
 # categories fall through to dashboard-only routing.
 #
-# A single example entry is present so the loader validates end-to-end.
-# Replace with the operational watchlist before running live.
+# Polymarket entries use the Gamma conditionId as platform_market_id.
+# Seeded from active, non-closed Polymarket Gamma API metadata on
+# 2026-05-17 for the initial monolith smoke path.
 
 [[markets]]
-id = "example_market_placeholder"
-platform = "kalshi"
-platform_market_id = "EXAMPLE-PLACEHOLDER"
-category = "monetary_policy"
-active = false
+id = "polymarket_mstr_sells_btc_may_2026"
+platform = "polymarket"
+platform_market_id = "0x3733a1b647e7364095736ab0966465d896a84cf3b6bc1695ca1f26c3239b3868"
+category = "crypto_protocol"
+active = true
+poll_priority = "hot"
+
+[[markets]]
+id = "polymarket_mstr_sells_btc_jun_2026"
+platform = "polymarket"
+platform_market_id = "0x8e7a03cb1970e2ad6533b01892403516b6b3f5b5fa90ed7d104c28b27e40ba00"
+category = "crypto_protocol"
+active = true
+poll_priority = "hot"
+
+[[markets]]
+id = "polymarket_mstr_sells_btc_dec_2026"
+platform = "polymarket"
+platform_market_id = "0x8213d395e079614d6c4d7f4cbb9be9337ab51648a21cc2a334ae8f1966d164b4"
+category = "crypto_protocol"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_kraken_ipo_dec_2026"
+platform = "polymarket"
+platform_market_id = "0xced0cb8725bad43d78fda0cd0e5fa9e31804625cb3502b2c7897f8e8f7fa9e1f"
+category = "crypto_regulatory"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_btc_etf_flows_may_18_2026"
+platform = "polymarket"
+platform_market_id = "0x650ddc043aeff505d3818320c6537721ec38c6c0c059fbfb17460658cc79e331"
+category = "crypto_etf"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_btc_etf_flows_may_19_2026"
+platform = "polymarket"
+platform_market_id = "0xbd6b0927367b1748497b7c561666a4a0a4216051fc45d64f30fd89d11daacf2d"
+category = "crypto_etf"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_eth_etf_flows_may_18_2026"
+platform = "polymarket"
+platform_market_id = "0xe3f1817a8800a496970ff3492671aa395354982e3287802758f9a1beafaf60b6"
+category = "crypto_etf"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_eth_etf_flows_may_19_2026"
+platform = "polymarket"
+platform_market_id = "0xce0198f371b8b2503a4882eb0c5b4f130c8ebf8a2af3a7fc1b98ae035004c50f"
+category = "crypto_etf"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_xi_out_before_2027"
+platform = "polymarket"
+platform_market_id = "0xa467b14d51f01b957109d9cbb1d6c124fab2a089d52ed8f471d23c2812e743b7"
+category = "geopolitics"
+active = true
+poll_priority = "warm"
+
+[[markets]]
+id = "polymarket_china_india_clash_dec_2026"
+platform = "polymarket"
+platform_market_id = "0x6e6851f2698629795fa06869d961c986221a80cedcba10fbaf0ed220607cdada"
+category = "conflict"
+active = true
 poll_priority = "normal"
+
+[[markets]]
+id = "polymarket_macron_out_jun_2026"
+platform = "polymarket"
+platform_market_id = "0xda5c517dd5b78c80dec8ceb08ca4f466317633487827d7290332b4851cc4a4fa"
+category = "geopolitics"
+active = true
+poll_priority = "normal"
+
+[[markets]]
+id = "polymarket_uk_election_called_jun_2026"
+platform = "polymarket"
+platform_market_id = "0x1ec6f87bc7d6d0976bbaee5883577bc51be4ba5ef7c0127ccd96e9d64136df40"
+category = "geopolitics"
+active = true
+poll_priority = "normal"
+
+[[relationships]]
+market_a = "polymarket_mstr_sells_btc_may_2026"
+market_b = "polymarket_mstr_sells_btc_jun_2026"
+type = "positive"
+strength = 0.9
+source = "manual"
+
+[[relationships]]
+market_a = "polymarket_mstr_sells_btc_jun_2026"
+market_b = "polymarket_mstr_sells_btc_dec_2026"
+type = "positive"
+strength = 0.8
+source = "manual"
+
+[[relationships]]
+market_a = "polymarket_btc_etf_flows_may_18_2026"
+market_b = "polymarket_btc_etf_flows_may_19_2026"
+type = "positive"
+strength = 0.7
+source = "manual"
+
+[[relationships]]
+market_a = "polymarket_eth_etf_flows_may_18_2026"
+market_b = "polymarket_eth_etf_flows_may_19_2026"
+type = "positive"
+strength = 0.7
+source = "manual"
+
+[[relationships]]
+market_a = "polymarket_xi_out_before_2027"
+market_b = "polymarket_china_india_clash_dec_2026"
+type = "complex"
+strength = 0.4
+source = "manual"
