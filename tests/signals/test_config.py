@@ -8,6 +8,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from augur_signals._config import load_config
+from augur_signals.detectors._config import DetectorsConfig
 
 
 class _Engine(BaseModel):
@@ -52,3 +53,11 @@ def test_load_config_validation_error_surfaces(tmp_path: Path) -> None:
 
     with pytest.raises(ValidationError):
         load_config(path, _Root)
+
+
+@pytest.mark.unit
+def test_checked_in_detector_config_matches_schema() -> None:
+    result = load_config(Path("config/detectors.toml"), DetectorsConfig)
+
+    assert result.price_velocity.hazard_rate == 0.004
+    assert result.cross_market.window_seconds == 14_400
