@@ -216,3 +216,9 @@ __marimo__/
 .docs/
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+
+# Local live-run storage
+/data/*.duckdb
+/data/*.duckdb.wal
+/data/run_engine.progress.log
+/data/run_engine.signals.jsonl

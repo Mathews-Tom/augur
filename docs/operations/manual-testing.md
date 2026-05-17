@@ -56,15 +56,82 @@ Runtime contract:
 - Polymarket-only watchlists run without platform credentials.
 - Active Kalshi markets require `KALSHI_API_KEY`.
 - DuckDB storage is opened from `config/storage.toml`.
-- Output is deterministic canonical JSON from `augur_format.deterministic.json_feed`.
+- Signal output is deterministic canonical JSON on stdout from `augur_format.deterministic.json_feed`.
+- `--once` emits a human-readable cycle summary on stderr.
+- Continuous mode emits a human-readable cycle summary every `--summary-every-cycles` cycles.
+- `--feature-warmup-size` controls the in-memory observations per market required before features emit; keep the default for normal runs and lower it only for smoke tests.
 
-Current repository state still has only an inactive placeholder watchlist, so `uv run python scripts/run_engine.py --once` fails fast with:
+Current repository state has an active Polymarket-only seed watchlist. A cold first cycle should persist snapshots and may emit no signal contexts because the feature pipeline needs market history before detectors have enough rolling state.
 
-```text
-run_engine failed: config/markets.toml has no active markets
+Verified local smoke on 2026-05-17:
+
+```bash
+uv run python scripts/run_engine.py --once
+uv run python - <<'PY'
+import duckdb
+
+con = duckdb.connect("data/augur.duckdb", read_only=True)
+for table in ["snapshots", "features", "signals"]:
+    print(table, con.execute(f"select count(*) from {table}").fetchone()[0])
+con.close()
+PY
 ```
 
-Populate `config/markets.toml` before using the runner for live capture.
+Example result:
+
+```text
+augur run summary: status=ok mode=once cycle=1 storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=4 features=0 signals=0
+  note: feature buffers are still warming; configured warmup is 50 observations per market, estimated remaining cycles=49, and --once starts a fresh in-memory buffer
+snapshots 12
+features 0
+signals 0
+```
+
+The trade count depends on market activity during the lookback window. The zero feature and signal counts are expected for a one-cycle cold run. Run a continuous process long enough to warm the in-memory feature buffers before expecting rolling-feature output or detector emissions.
+
+Short continuous smoke:
+
+```bash
+uv run python scripts/run_engine.py --poll-seconds 10 --feature-warmup-size 5
+```
+
+Expected progression:
+
+```text
+augur run summary: status=ok mode=continuous cycle=1 storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=<market-dependent> features=0 signals=0
+  note: feature buffers are still warming; configured warmup is 5 observations per market, estimated remaining cycles=4
+...
+augur run summary: status=ok mode=continuous cycle=5 storage=duckdb:data/augur.duckdb
+  markets: active=12 platforms=polymarket:12 snapshots=12
+  outputs: trades=<market-dependent> features=12 signals=<detector-dependent>
+```
+
+Default-warmup capture validated on 2026-05-17:
+
+```bash
+uv run python scripts/run_engine.py --poll-seconds 60 --summary-every-cycles 1 \
+  > data/run_engine.signals.jsonl \
+  2> data/run_engine.progress.log
+```
+
+Observed after stopping the runner:
+
+```text
+progress summaries 105
+first feature cycle 50
+first signal cycle 103
+snapshots 1416
+features 732
+signals 1
+```
+
+The emitted signal was a `price_velocity` context for `polymarket_btc_etf_flows_may_18_2026` with magnitude/confidence `0.873316` and manipulation flag `thin_book_during_move`. Treat this as an end-to-end plumbing validation and detector-review candidate; it is low-liquidity ETF-flow activity, not calibrated production evidence.
+
+Stop the runner from the terminal that owns `scripts/run_engine.py`; stopping a separate `tail -f` process does not stop the capture. A clean interrupt prints `run_engine stopped: interrupted` instead of a traceback.
 
 ## 4. Distributed-runtime smoke stack
 
@@ -234,7 +301,7 @@ unset AUGUR_CONFIG_DIR AUGUR_TIMESCALE_URL AUGUR_REPLICA_ID
 
 ## 9. Known gaps
 
-- The monolith runner exists as `scripts/run_engine.py`, but the checked-in watchlist still has no active markets.
+- The checked-in watchlist is an initial Polymarket-only seed, not a production coverage set.
 - `scripts/backtest.py` and `scripts/calibrate.py` are stubs that raise `NotImplementedError`.
 - Worker entrypoints for feature / detector / manipulation / calibration / dedup / context_format / llm require the bus message-schema work described in §4 above.
 - Live failover tests against a real NATS or Redis cluster are operator-owned; CI uses dependency-injected fakes.

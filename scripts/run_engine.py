@@ -34,11 +34,12 @@ from augur_signals.detectors.regime_shift import RegimeShiftDetector
 from augur_signals.detectors.registry import DetectorRegistry
 from augur_signals.detectors.volume_spike import VolumeSpikeDetector
 from augur_signals.engine import Engine
+from augur_signals.features._config import FeaturePipelineConfig
 from augur_signals.features.pipeline import FeaturePipeline
 from augur_signals.ingestion.base import AbstractPoller, RawMarketData, RawTrade
 from augur_signals.ingestion.kalshi import KalshiPoller
 from augur_signals.ingestion.normalizer import normalize
-from augur_signals.ingestion.polymarket import PolymarketPoller
+from augur_signals.ingestion.polymarket import PolymarketPoller, primary_clob_token_id
 from augur_signals.manipulation._config import ManipulationConfig
 from augur_signals.manipulation.detector import ManipulationDetector
 from augur_signals.models import FeatureVector, MarketSnapshot
@@ -87,13 +88,32 @@ class RuntimeConfig:
     once: bool
     poll_seconds: float
     trade_lookback_seconds: int
+    feature_warmup_size: int
+    summary_every_cycles: int
 
 
 @dataclass(slots=True)
 class EngineRuntime:
     engine: Engine
     feature_pipeline: FeaturePipeline
+    feature_config: FeaturePipelineConfig
+    storage_label: str
     markets: list[MarketEntry]
+
+
+@dataclass(frozen=True, slots=True)
+class CycleSummary:
+    mode: Literal["once", "continuous"]
+    cycle: int
+    storage: str
+    active_markets: int
+    platforms: tuple[str, ...]
+    snapshots: int
+    trades: int
+    features: int
+    signals: int
+    feature_warmup_size: int
+    warmup_remaining_cycles: int
 
 
 def _parse_args(argv: Sequence[str]) -> RuntimeConfig:
@@ -123,13 +143,31 @@ def _parse_args(argv: Sequence[str]) -> RuntimeConfig:
         default=300,
         help="Initial trade lookback window for manipulation checks.",
     )
+    parser.add_argument(
+        "--feature-warmup-size",
+        type=int,
+        default=FeaturePipelineConfig().warmup_size,
+        help="Observations per market required before features are emitted.",
+    )
+    parser.add_argument(
+        "--summary-every-cycles",
+        type=int,
+        default=1,
+        help="Emit a stderr progress summary every N cycles in continuous mode.",
+    )
     args = parser.parse_args(argv)
+    if args.feature_warmup_size <= 0:
+        parser.error("--feature-warmup-size must be positive")
+    if args.summary_every_cycles <= 0:
+        parser.error("--summary-every-cycles must be positive")
     return RuntimeConfig(
         config_dir=args.config_dir,
         data_dir=args.data_dir,
         once=args.once,
         poll_seconds=args.poll_seconds,
         trade_lookback_seconds=args.trade_lookback_seconds,
+        feature_warmup_size=args.feature_warmup_size,
+        summary_every_cycles=args.summary_every_cycles,
     )
 
 
@@ -183,6 +221,7 @@ def _build_runtime(config: RuntimeConfig) -> EngineRuntime:
     storage_config = load_config(config.config_dir / "storage.toml", StorageConfig)
     store = make_duckdb_store(storage_config)
     store.initialize()
+    feature_config = FeaturePipelineConfig(warmup_size=config.feature_warmup_size)
     taxonomy = MarketTaxonomy.from_toml(config.config_dir / "markets.toml")
     resolver = RelatedMarketResolver(taxonomy, store)
     prompt_library = InvestigationPromptLibrary.from_toml(
@@ -197,7 +236,19 @@ def _build_runtime(config: RuntimeConfig) -> EngineRuntime:
         bus=InProcessAsyncBus(capacity=dedup_config.dedup.bus.queue_capacity),
         assembler=ContextAssembler(store, resolver, prompt_library, category_by_market),
     )
-    return EngineRuntime(engine, FeaturePipeline(), active)
+    return EngineRuntime(
+        engine=engine,
+        feature_pipeline=FeaturePipeline(feature_config),
+        feature_config=feature_config,
+        storage_label=_storage_label(storage_config),
+        markets=active,
+    )
+
+
+def _storage_label(config: StorageConfig) -> str:
+    if config.backend.kind == "duckdb":
+        return f"duckdb:{config.backend.duckdb_path}"
+    return f"timescaledb:${config.backend.timescale_url_env}"
 
 
 def _required_platforms(markets: Sequence[MarketEntry]) -> set[str]:
@@ -222,12 +273,12 @@ async def _fetch_cycle(
     markets: Sequence[MarketEntry],
     since: datetime,
 ) -> tuple[list[MarketSnapshot], dict[str, list[RawTrade]]]:
-    raw_by_platform = await _poll_markets_by_platform(pollers)
     snapshots: list[MarketSnapshot] = []
     trades: dict[str, list[RawTrade]] = {}
     for market in markets:
-        raw = _select_market(raw_by_platform[market.platform], market)
-        book = await pollers[market.platform].poll_orderbook(market.platform_market_id)
+        raw = await _poll_configured_market(pollers[market.platform], market)
+        book_market_id = _orderbook_market_id(raw, market)
+        book = await pollers[market.platform].poll_orderbook(book_market_id)
         snapshot = normalize(raw, book)
         snapshots.append(snapshot)
         raw_trades = await pollers[market.platform].poll_trades(market.platform_market_id, since)
@@ -244,18 +295,36 @@ async def _poll_markets_by_platform(
     return results
 
 
+async def _poll_configured_market(poller: AbstractPoller, market: MarketEntry) -> RawMarketData:
+    if isinstance(poller, PolymarketPoller):
+        raw = await poller.poll_market(market.platform_market_id)
+        return _remap_raw_market(raw, market.id)
+    raw_by_platform = await poller.poll_markets()
+    return _select_market(raw_by_platform, market)
+
+
+def _orderbook_market_id(raw: RawMarketData, market: MarketEntry) -> str:
+    if market.platform == "polymarket":
+        return primary_clob_token_id(raw)
+    return market.platform_market_id
+
+
 def _select_market(raw_markets: Sequence[RawMarketData], market: MarketEntry) -> RawMarketData:
     for raw in raw_markets:
         if raw.market_id == market.platform_market_id:
-            return RawMarketData(
-                market_id=market.id,
-                platform=raw.platform,
-                fetched_at=raw.fetched_at,
-                payload=raw.payload,
-            )
+            return _remap_raw_market(raw, market.id)
     raise RuntimeError(
         f"{market.platform} market {market.platform_market_id!r} "
         f"for configured id {market.id!r} was not returned by poll_markets"
+    )
+
+
+def _remap_raw_market(raw: RawMarketData, market_id: str) -> RawMarketData:
+    return RawMarketData(
+        market_id=market_id,
+        platform=raw.platform,
+        fetched_at=raw.fetched_at,
+        payload=raw.payload,
     )
 
 
@@ -274,9 +343,11 @@ def _remap_trade(trade: RawTrade, market_id: str) -> RawTrade:
 async def _run(config: RuntimeConfig) -> None:
     runtime = _build_runtime(config)
     since = datetime.now(tz=UTC) - timedelta(seconds=config.trade_lookback_seconds)
+    cycle = 0
     async with aiohttp.ClientSession() as session:
         pollers = _build_pollers(session, runtime.markets)
         while True:
+            cycle += 1
             snapshots, trades = await _fetch_cycle(pollers, runtime.markets, since)
             since = datetime.now(tz=UTC)
             features = _ingest_features(runtime, snapshots)
@@ -289,8 +360,23 @@ async def _run(config: RuntimeConfig) -> None:
             )
             for context in contexts:
                 print(to_canonical_json(context).decode("utf-8"), flush=True)
+            summary = _summarize_cycle(
+                mode="once" if config.once else "continuous",
+                cycle=cycle,
+                storage=runtime.storage_label,
+                active_markets=len(runtime.markets),
+                platforms=_platform_counts(runtime.markets),
+                snapshots=snapshots,
+                trades=trades,
+                features=features,
+                signal_count=len(contexts),
+                feature_warmup_size=runtime.feature_config.warmup_size,
+            )
             if config.once:
+                _emit_summary(summary)
                 return
+            if cycle % config.summary_every_cycles == 0:
+                _emit_summary(summary)
             await asyncio.sleep(config.poll_seconds)
 
 
@@ -306,9 +392,68 @@ def _ingest_features(
     return features
 
 
+def _summarize_cycle(
+    *,
+    mode: Literal["once", "continuous"],
+    cycle: int,
+    storage: str,
+    active_markets: int,
+    platforms: tuple[str, ...],
+    snapshots: Sequence[MarketSnapshot],
+    trades: dict[str, list[RawTrade]],
+    features: dict[str, FeatureVector],
+    signal_count: int,
+    feature_warmup_size: int,
+) -> CycleSummary:
+    return CycleSummary(
+        mode=mode,
+        cycle=cycle,
+        storage=storage,
+        active_markets=active_markets,
+        platforms=platforms,
+        snapshots=len(snapshots),
+        trades=sum(len(market_trades) for market_trades in trades.values()),
+        features=len(features),
+        signals=signal_count,
+        feature_warmup_size=feature_warmup_size,
+        warmup_remaining_cycles=max(0, feature_warmup_size - cycle),
+    )
+
+
+def _platform_counts(markets: Sequence[MarketEntry]) -> tuple[str, ...]:
+    counts: dict[str, int] = {}
+    for market in markets:
+        counts[market.platform] = counts.get(market.platform, 0) + 1
+    return tuple(f"{platform}:{count}" for platform, count in sorted(counts.items()))
+
+
+def _emit_summary(summary: CycleSummary) -> None:
+    lines = [
+        "augur run summary: "
+        f"status=ok mode={summary.mode} cycle={summary.cycle} storage={summary.storage}",
+        "  markets: "
+        f"active={summary.active_markets} "
+        f"platforms={','.join(summary.platforms)} "
+        f"snapshots={summary.snapshots}",
+        f"  outputs: trades={summary.trades} features={summary.features} signals={summary.signals}",
+    ]
+    if summary.features < summary.active_markets:
+        lines.append(
+            "  note: feature buffers are still warming; "
+            f"configured warmup is {summary.feature_warmup_size} observations per market, "
+            f"estimated remaining cycles={summary.warmup_remaining_cycles}"
+        )
+        if summary.mode == "once":
+            lines[-1] = f"{lines[-1]}, and --once starts a fresh in-memory buffer"
+    print("\n".join(lines), file=sys.stderr, flush=True)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     try:
         asyncio.run(_run(_parse_args(argv or sys.argv[1:])))
+    except KeyboardInterrupt:
+        print("run_engine stopped: interrupted", file=sys.stderr)
+        return 130
     except Exception as exc:
         print(f"run_engine failed: {exc}", file=sys.stderr)
         return 1

@@ -8,6 +8,10 @@ import pytest
 
 from augur_signals.ingestion.base import RawMarketData, RawOrderBook
 from augur_signals.ingestion.normalizer import MalformedPayloadError, normalize
+from augur_signals.ingestion.polymarket import (
+    _normalize_gamma_market_payload,
+    primary_clob_token_id,
+)
 from augur_signals.ingestion.retry import (
     BackoffPolicy,
     RetryExhaustedError,
@@ -97,6 +101,39 @@ def test_normalize_polymarket_payload() -> None:
     assert snap.volume_24h == 100000.0
     assert snap.liquidity == pytest.approx(0.54 * 1000 + 0.56 * 1000)
     assert snap.closes_at == datetime(2026, 6, 15, 18, 0, tzinfo=UTC)
+
+
+@pytest.mark.unit
+def test_polymarket_gamma_payload_maps_to_normalizer_contract() -> None:
+    payload = _normalize_gamma_market_payload(
+        {
+            "conditionId": "0xabc",
+            "question": "Will X happen?",
+            "description": "Resolves YES if X happens.",
+            "resolutionSource": "Source text",
+            "outcomePrices": '["0.42", "0.58"]',
+            "volume24hr": 123.0,
+            "bestBid": "0.41",
+            "bestAsk": "0.43",
+            "endDate": "2026-06-15T18:00:00Z",
+            "clobTokenIds": '["yes-token", "no-token"]',
+        }
+    )
+    raw = RawMarketData(
+        market_id="0xabc",
+        platform="polymarket",
+        fetched_at=datetime(2026, 3, 15, 12, 0, tzinfo=UTC),
+        payload=payload,
+    )
+
+    snap = normalize(raw, None)
+
+    assert snap.last_price == 0.42
+    assert snap.bid == 0.41
+    assert snap.ask == 0.43
+    assert snap.volume_24h == 123.0
+    assert snap.resolution_source == "Source text"
+    assert primary_clob_token_id(raw) == "yes-token"
 
 
 @pytest.mark.unit
