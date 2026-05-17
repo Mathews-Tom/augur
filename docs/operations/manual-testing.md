@@ -110,6 +110,29 @@ augur run summary: status=ok mode=continuous cycle=5 storage=duckdb:data/augur.d
   outputs: trades=<market-dependent> features=12 signals=<detector-dependent>
 ```
 
+Default-warmup capture validated on 2026-05-17:
+
+```bash
+uv run python scripts/run_engine.py --poll-seconds 60 --summary-every-cycles 1 \
+  > data/run_engine.signals.jsonl \
+  2> data/run_engine.progress.log
+```
+
+Observed after stopping the runner:
+
+```text
+progress summaries 105
+first feature cycle 50
+first signal cycle 103
+snapshots 1416
+features 732
+signals 1
+```
+
+The emitted signal was a `price_velocity` context for `polymarket_btc_etf_flows_may_18_2026` with magnitude/confidence `0.873316` and manipulation flag `thin_book_during_move`. Treat this as an end-to-end plumbing validation and detector-review candidate; it is low-liquidity ETF-flow activity, not calibrated production evidence.
+
+Stop the runner from the terminal that owns `scripts/run_engine.py`; stopping a separate `tail -f` process does not stop the capture. A clean interrupt prints `run_engine stopped: interrupted` instead of a traceback.
+
 ## 4. Distributed-runtime smoke stack
 
 The phase 5 compose stack brings up every external dependency the workers need: NATS JetStream, Redis, TimescaleDB, Prometheus, and (optionally) an OTel collector. Workers run as separate host processes so each one is inspectable.
