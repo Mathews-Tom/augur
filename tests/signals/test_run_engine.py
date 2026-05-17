@@ -220,6 +220,27 @@ def test_parse_args_accepts_smoke_warmup_override() -> None:
 
 
 @pytest.mark.unit
+def test_main_handles_keyboard_interrupt_without_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load_run_engine()
+
+    def raise_interrupt(_: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(module, "_run", lambda _: object())
+    monkeypatch.setattr(module.asyncio, "run", raise_interrupt)
+
+    rc = module.main(["--once"])
+
+    captured = capsys.readouterr()
+    assert rc == 130
+    assert captured.out == ""
+    assert captured.err == "run_engine stopped: interrupted\n"
+
+
+@pytest.mark.unit
 def test_platform_counts_sorts_by_platform() -> None:
     module = _load_run_engine()
     markets = [

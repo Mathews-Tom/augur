@@ -451,6 +451,9 @@ def _emit_summary(summary: CycleSummary) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     try:
         asyncio.run(_run(_parse_args(argv or sys.argv[1:])))
+    except KeyboardInterrupt:
+        print("run_engine stopped: interrupted", file=sys.stderr)
+        return 130
     except Exception as exc:
         print(f"run_engine failed: {exc}", file=sys.stderr)
         return 1
